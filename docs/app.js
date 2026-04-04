@@ -92,6 +92,7 @@ function showLoginScreen() {
 function showApp() {
   document.getElementById('login-screen').classList.add('hidden');
   document.getElementById('app-content').classList.remove('hidden');
+  bindAppListeners();
   showTab('today');
 }
 
@@ -397,10 +398,18 @@ function toggleTagIdx(idx) {
 // ============================================================
 document.addEventListener('DOMContentLoaded', () => {
   initAuth();
-  document.getElementById('custom-tag-input').addEventListener('keydown', e => {
-    if (e.key === 'Enter') { e.preventDefault(); addCustomTag(); }
-  });
   document.getElementById('password-input').addEventListener('keydown', e => {
     if (e.key === 'Enter') { e.preventDefault(); handleLogin(); }
   });
 });
+
+// Called lazily after app content is shown
+function bindAppListeners() {
+  const customTagInput = document.getElementById('custom-tag-input');
+  if (customTagInput && !customTagInput._bound) {
+    customTagInput._bound = true;
+    customTagInput.addEventListener('keydown', e => {
+      if (e.key === 'Enter') { e.preventDefault(); addCustomTag(); }
+    });
+  }
+}
