@@ -48,24 +48,36 @@ async function initAuth() {
   });
 }
 
+function setAuthError(msg) {
+  const el = document.getElementById('auth-error');
+  el.textContent = msg;
+  el.classList.toggle('hidden', !msg);
+}
+
+function setAuthBusy(busy) {
+  document.getElementById('login-btn').disabled  = busy;
+  document.getElementById('signup-btn').disabled = busy;
+}
+
 async function handleLogin() {
-  const email = document.getElementById('email-input').value.trim();
-  if (!email) return;
-  const btn = document.querySelector('#login-form button');
-  btn.disabled = true;
-  btn.textContent = 'Sending…';
-  const { error } = await sb.auth.signInWithOtp({
-    email,
-    options: { emailRedirectTo: window.location.origin + window.location.pathname }
-  });
-  if (error) {
-    btn.disabled = false;
-    btn.textContent = 'Send Magic Link';
-    alert('Error: ' + error.message);
-  } else {
-    document.getElementById('login-form').classList.add('hidden');
-    document.getElementById('login-sent').classList.remove('hidden');
-  }
+  const email    = document.getElementById('email-input').value.trim();
+  const password = document.getElementById('password-input').value;
+  if (!email || !password) { setAuthError('Enter your email and password.'); return; }
+  setAuthBusy(true); setAuthError('');
+  const { error } = await sb.auth.signInWithPassword({ email, password });
+  setAuthBusy(false);
+  if (error) setAuthError(error.message);
+}
+
+async function handleSignUp() {
+  const email    = document.getElementById('email-input').value.trim();
+  const password = document.getElementById('password-input').value;
+  if (!email || !password) { setAuthError('Enter your email and a password (min 6 chars).'); return; }
+  if (password.length < 6)  { setAuthError('Password must be at least 6 characters.'); return; }
+  setAuthBusy(true); setAuthError('');
+  const { error } = await sb.auth.signUp({ email, password });
+  setAuthBusy(false);
+  if (error) setAuthError(error.message);
 }
 
 async function handleSignOut() {
@@ -388,7 +400,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('custom-tag-input').addEventListener('keydown', e => {
     if (e.key === 'Enter') { e.preventDefault(); addCustomTag(); }
   });
-  document.getElementById('email-input').addEventListener('keydown', e => {
+  document.getElementById('password-input').addEventListener('keydown', e => {
     if (e.key === 'Enter') { e.preventDefault(); handleLogin(); }
   });
 });

@@ -484,11 +484,20 @@ header h1 { font-size: 22px; font-weight: 700; }
   font-weight: 600;
   font-family: inherit;
   cursor: pointer;
+  margin-bottom: 10px;
+}
+#login-form button.secondary {
+  background: var(--bg);
+  color: var(--primary);
+  border: 1.5px solid var(--primary);
 }
 #login-form button:disabled { opacity: 0.6; cursor: default; }
-#login-sent { padding: 8px 0; }
-.sent-icon  { font-size: 40px; margin-bottom: 12px; }
-#login-sent p { font-size: 16px; color: var(--text2); line-height: 1.5; }
+.auth-error {
+  color: var(--uncomfortable);
+  font-size: 14px;
+  text-align: center;
+  margin-top: 4px;
+}
 
 /* ── Sign-out button ─────────────────────────────── */
 #signout-btn {

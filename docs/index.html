@@ -18,11 +18,10 @@
       <p class="login-sub">Track your moments. Own your day.</p>
       <div id="login-form">
         <input id="email-input" type="email" placeholder="your@email.com" autocomplete="email" />
-        <button onclick="handleLogin()">Send Magic Link</button>
-      </div>
-      <div id="login-sent" class="hidden">
-        <div class="sent-icon">✉️</div>
-        <p>Magic link sent!<br>Check your email and tap the link.</p>
+        <input id="password-input" type="password" placeholder="Password" autocomplete="current-password" />
+        <button id="login-btn" onclick="handleLogin()">Sign In</button>
+        <button id="signup-btn" class="secondary" onclick="handleSignUp()">Create Account</button>
+        <div id="auth-error" class="auth-error hidden"></div>
       </div>
     </div>
   </div>
