@@ -141,17 +141,16 @@ async function removeMoment(id) {
 }
 
 async function persistAddMoment(moment) {
-  const { id: tempId, ...fields } = moment;
   const { data, error } = await sb.from('moments')
-    .insert({ ...fields, user_id: currentUser.id }).select().single();
+    .insert({ ...moment, user_id: currentUser.id }).select().single();
   if (error) {
     console.error('persistAddMoment error:', error);
     showToast('Save failed: ' + error.message, true);
     // remove the optimistic entry since it didn't save
-    cachedMoments = cachedMoments.filter(m => m.id !== tempId);
+    cachedMoments = cachedMoments.filter(m => m.id !== moment.id);
     renderCurrent();
   } else if (data) {
-    cachedMoments = cachedMoments.map(m => m.id === tempId ? data : m);
+    cachedMoments = cachedMoments.map(m => m.id === moment.id ? data : m);
   }
 }
 
@@ -471,7 +470,7 @@ function addCustomTag() {
 async function submitMoment() {
   form.note = document.getElementById('note-input').value.trim();
   const moment = {
-    id:        Date.now().toString(),
+    id:        crypto.randomUUID(),
     date:      todayStr(),
     type:      form.type,
     intensity: form.intensity,
