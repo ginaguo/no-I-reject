@@ -5,7 +5,7 @@
 // ============================================================
 const SUPABASE_URL = 'https://xrvokelhhoxrqgdpgula.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inhydm9rZWxoaG94cnFnZHBndWxhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzUzMjgyMjIsImV4cCI6MjA5MDkwNDIyMn0.XhT2hzXoOmq5dcawG39wCpiyojkvX3TR6A-206e-mQ4';
-const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+let sb;
 
 // ============================================================
 // CONSTANTS
@@ -397,6 +397,11 @@ function toggleTagIdx(idx) {
 // INIT
 // ============================================================
 document.addEventListener('DOMContentLoaded', () => {
+  if (typeof supabase === 'undefined' || !supabase.createClient) {
+    alert('Failed to load Supabase library. Please check your internet connection and refresh.');
+    return;
+  }
+  sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
   initAuth();
   document.getElementById('password-input').addEventListener('keydown', e => {
     if (e.key === 'Enter') { e.preventDefault(); handleLogin(); }
