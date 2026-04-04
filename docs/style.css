@@ -283,6 +283,7 @@ header h1 { font-size: 22px; font-weight: 700; }
   align-items: flex-end;
   justify-content: center;
 }
+.hidden { display: none !important; }
 .overlay.hidden { display: none; }
 .sheet {
   background: var(--card);
