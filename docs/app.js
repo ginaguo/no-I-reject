@@ -418,3 +418,21 @@ function bindAppListeners() {
     });
   }
 }
+
+// Expose functions needed by inline onclick handlers
+window.handleLogin    = handleLogin;
+window.handleSignUp   = handleSignUp;
+window.handleSignOut  = handleSignOut;
+window.showTab        = showTab;
+window.openAddModal   = openAddModal;
+window.closeAddModal  = closeAddModal;
+window.submitMoment   = submitMoment;
+window.selectType     = selectType;
+window.selectIntensity = selectIntensity;
+window.toggleTagIdx   = toggleTagIdx;
+window.addCustomTag   = addCustomTag;
+window.removeMoment   = removeMoment;
+window.changeMonth    = changeMonth;
+window.openDayDetail  = openDayDetail;
+window.closeDayModal  = closeDayModal;
+window.handleOverlayClick = handleOverlayClick;
