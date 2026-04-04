@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0" />
+  <title>NoIReject</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+<div id="app">
+
+  <!-- Header -->
+  <header>
+    <h1 id="header-title">Today</h1>
+  </header>
+
+  <!-- Tab Panes -->
+  <main id="main-content">
+    <div id="today-tab"    class="tab-pane active"></div>
+    <div id="calendar-tab" class="tab-pane"></div>
+    <div id="year-tab"     class="tab-pane"></div>
+    <div id="insights-tab" class="tab-pane"></div>
+  </main>
+
+  <!-- Bottom Tab Bar -->
+  <nav id="tab-bar">
+    <button class="tab-btn active" data-tab="today"    onclick="showTab('today')">
+      <span class="tab-icon">☀️</span><span class="tab-label">Today</span>
+    </button>
+    <button class="tab-btn" data-tab="calendar" onclick="showTab('calendar')">
+      <span class="tab-icon">📅</span><span class="tab-label">Calendar</span>
+    </button>
+    <button class="tab-btn" data-tab="year" onclick="showTab('year')">
+      <span class="tab-icon">📊</span><span class="tab-label">Year</span>
+    </button>
+    <button class="tab-btn" data-tab="insights" onclick="showTab('insights')">
+      <span class="tab-icon">💡</span><span class="tab-label">Insights</span>
+    </button>
+  </nav>
+
+  <!-- FAB -->
+  <button id="fab" onclick="openAddModal()">+</button>
+
+  <!-- ── Add Moment Sheet ─────────────────────────────── -->
+  <div id="add-overlay" class="overlay hidden" onclick="handleOverlayClick(event,'add-sheet')">
+    <div id="add-sheet" class="sheet">
+      <div class="sheet-header">
+        <button class="sheet-header-btn" onclick="closeAddModal()">Cancel</button>
+        <span class="sheet-header-title">Log Moment</span>
+        <button class="sheet-header-btn primary" onclick="submitMoment()">Save</button>
+      </div>
+      <div class="sheet-body">
+
+        <!-- Type -->
+        <div class="form-section">
+          <div class="type-picker">
+            <button id="btn-uncomfortable" class="type-btn active" onclick="selectType('uncomfortable')">😤 Uncomfortable</button>
+            <button id="btn-excited"       class="type-btn"        onclick="selectType('excited')">🚀 Excited</button>
+          </div>
+        </div>
+
+        <!-- Score preview -->
+        <div class="form-section">
+          <div id="score-preview" class="score-preview"></div>
+        </div>
+
+        <!-- Intensity -->
+        <div class="form-section">
+          <div class="form-label">Intensity</div>
+          <div id="intensity-picker" class="intensity-picker"></div>
+        </div>
+
+        <!-- Tags -->
+        <div class="form-section">
+          <div class="form-label">Tags</div>
+          <div id="tags-picker" class="tags-picker"></div>
+          <div class="custom-tag-row">
+            <input id="custom-tag-input" type="text" placeholder="Add custom tag…" />
+            <button onclick="addCustomTag()">Add</button>
+          </div>
+        </div>
+
+        <!-- Note -->
+        <div class="form-section">
+          <div class="form-label">Note</div>
+          <textarea id="note-input" placeholder="Write something…"></textarea>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Day Detail Sheet ─────────────────────────────── -->
+  <div id="day-overlay" class="overlay hidden" onclick="handleOverlayClick(event,'day-sheet')">
+    <div id="day-sheet" class="sheet">
+      <div class="sheet-header">
+        <button class="sheet-header-btn" onclick="closeDayModal()">Close</button>
+        <span class="sheet-header-title" id="day-sheet-title"></span>
+        <span class="sheet-header-btn" style="opacity:0" aria-hidden="true">·</span>
+      </div>
+      <div id="day-sheet-content" class="sheet-body"></div>
+    </div>
+  </div>
+
+</div>
+<script src="app.js"></script>
+</body>
+</html>
