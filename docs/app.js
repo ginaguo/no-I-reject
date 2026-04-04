@@ -99,10 +99,12 @@ async function removeMoment(id) {
 }
 
 async function persistAddMoment(moment) {
+  const { id: tempId, ...fields } = moment;
   const { data, error } = await sb.from('moments')
-    .insert({ ...moment, user_id: currentUser.id }).select().single();
+    .insert({ ...fields, user_id: currentUser.id }).select().single();
   if (!error && data) {
-    cachedMoments = cachedMoments.map(m => m.id === moment.id ? data : m);
+    // replace temp local id with the real Supabase UUID
+    cachedMoments = cachedMoments.map(m => m.id === tempId ? data : m);
   }
 }
 
