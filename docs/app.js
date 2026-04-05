@@ -495,11 +495,17 @@ function renderForm() {
     _ipEl.addEventListener('click', handleIntensityClick);
   }
   requestAnimationFrame(() => initIntensityScroll(_ipEl));
-  const allTags = getAllTags();
+  const allTags    = getAllTags();
+  const customTags  = getCustomTags();
   document.getElementById('tags-picker').innerHTML = allTags
-    .map((tag, idx) =>
-      '<button class="tag-chip' + (form.tags.includes(tag) ? ' active' : '') + '" onclick="toggleTagIdx(' + idx + ')">' + esc(tag) + '</button>'
-    ).join('');
+    .map((tag, idx) => {
+      const isCustom  = customTags.includes(tag);
+      const isActive  = form.tags.includes(tag);
+      const removeBtn = isCustom
+        ? '<span class="tag-chip-remove" onclick="event.stopPropagation();removeCustomTag(\'' + esc(tag) + '\')" aria-label="Remove tag">&#x2715;</span>'
+        : '';
+      return '<button class="tag-chip' + (isActive ? ' active' : '') + (isCustom ? ' custom' : '') + '" onclick="toggleTagIdx(' + idx + ')">' + esc(tag) + removeBtn + '</button>';
+    }).join('');
   document.getElementById('note-input').value = form.note;
 }
 
@@ -521,6 +527,13 @@ function addCustomTag() {
   if (!custom.includes(tag) && !PREDEFINED_TAGS.includes(tag)) { custom.push(tag); writeCustomTags(custom); }
   if (!form.tags.includes(tag)) form.tags.push(tag);
   input.value = '';
+  renderForm();
+}
+
+function removeCustomTag(tag) {
+  const custom = getCustomTags().filter(t => t !== tag);
+  writeCustomTags(custom);
+  form.tags = form.tags.filter(t => t !== tag);
   renderForm();
 }
 
@@ -567,6 +580,7 @@ window.selectType         = selectType;
 window.selectIntensity    = selectIntensity;
 window.toggleTagIdx       = toggleTagIdx;
 window.addCustomTag       = addCustomTag;
+window.removeCustomTag    = removeCustomTag;
 window.removeMoment       = removeMoment;
 window.changeMonth        = changeMonth;
 window.openDayDetail      = openDayDetail;

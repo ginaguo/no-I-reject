@@ -435,8 +435,22 @@ header h1 { font-size: 22px; font-weight: 700; }
   font-size: 14px;
   cursor: pointer;
   transition: background 0.12s, border-color 0.12s;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
 }
 .tag-chip.active { background: var(--primary); border-color: var(--primary); color: #fff; }
+.tag-chip-remove {
+  font-size: 11px;
+  line-height: 1;
+  opacity: 0.55;
+  cursor: pointer;
+  padding: 0 1px;
+  border-radius: 50%;
+}
+.tag-chip-remove:hover { opacity: 1; }
+.tag-chip.active .tag-chip-remove { opacity: 0.75; }
+.tag-chip.active .tag-chip-remove:hover { opacity: 1; }
 
 /* Custom tag row */
 .custom-tag-row { display: flex; gap: 8px; align-items: center; margin-top: 4px; }
