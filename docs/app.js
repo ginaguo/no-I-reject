@@ -419,6 +419,7 @@ function renderInsights() {
   const el = document.getElementById('insights-tab');
   if (moments.length === 0) {
     el.innerHTML =
+      renderReflectCard() +
       '<div class="empty-state">' +
         '<div class="empty-icon">\uD83D\uDCA1</div>' +
         '<div class="empty-title">No data yet</div>' +
