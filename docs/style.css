@@ -48,9 +48,18 @@ header {
 }
 header h1 { font-size: 22px; font-weight: 700; }
 
+/* ── App content (post-login shell) ─────────────── */
+#app-content {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+}
+
 /* ── Main content ────────────────────────────────── */
 #main-content {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
   padding-bottom: calc(var(--tab-h) + 8px);
 }
