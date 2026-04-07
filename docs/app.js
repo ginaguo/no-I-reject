@@ -384,18 +384,18 @@ function renderInsights() {
     });
   });
   const tagStats = Object.entries(tagMap)
-    .map(([tag, { total, count }]) => ({ tag, avg: total / count, count }))
-    .sort((a, b) => b.avg - a.avg);
+    .map(([tag, { total, count }]) => ({ tag, total, count }))
+    .sort((a, b) => b.total - a.total);
 
   const tagRow = t =>
     '<div class="tag-stat-row">' +
       '<span class="tag-stat-name">' + esc(t.tag) + '</span>' +
       '<span class="tag-stat-count">' + t.count + ' moment' + (t.count > 1 ? 's' : '') + '</span>' +
-      '<span class="tag-stat-avg ' + (t.avg >= 0 ? 'pos' : 'neg') + '">' + (t.avg > 0 ? '+' : '') + t.avg.toFixed(1) + '</span>' +
+      '<span class="tag-stat-avg ' + (t.total >= 0 ? 'pos' : 'neg') + '">' + (t.total > 0 ? '+' : '') + t.total + '</span>' +
     '</div>';
 
-  const happy    = tagStats.filter(t => t.avg > 0);
-  const draining = [...tagStats.filter(t => t.avg < 0)].reverse();
+  const happy    = tagStats.filter(t => t.total > 0);
+  const draining = [...tagStats.filter(t => t.total < 0)].reverse();
 
   el.innerHTML =
     '<div class="card stats-card"><div class="stat-trio">' +
