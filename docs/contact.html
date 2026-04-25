@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NoIReject — Contact</title>
+  <link rel="icon" type="image/png" href="favicon.png" />
+  <link rel="apple-touch-icon" href="icon-180.png" />
+  <style>
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
+      max-width: 540px;
+      margin: 0 auto;
+      padding: 32px 20px 80px;
+      color: #1c1c1e;
+      line-height: 1.55;
+      background: #fff;
+    }
+    h1 { font-size: 28px; margin-bottom: 4px; }
+    .meta { color: #6c6c70; font-size: 14px; margin-bottom: 24px; }
+    label { display: block; font-size: 14px; font-weight: 600; margin-top: 16px; color: #3a3a3c; }
+    input, textarea {
+      width: 100%;
+      box-sizing: border-box;
+      font: inherit;
+      padding: 10px 12px;
+      border: 1px solid #d1d1d6;
+      border-radius: 10px;
+      margin-top: 6px;
+      background: #fafafa;
+    }
+    input:focus, textarea:focus { outline: none; border-color: #007aff; background: #fff; }
+    textarea { min-height: 140px; resize: vertical; }
+    button {
+      margin-top: 20px;
+      padding: 12px 22px;
+      font: inherit;
+      font-weight: 600;
+      color: #fff;
+      background: #007aff;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+    }
+    button:disabled { opacity: 0.6; cursor: default; }
+    .hp { position: absolute; left: -9999px; }
+    .status { margin-top: 16px; font-size: 14px; }
+    .status.error { color: #ff3b30; }
+    .status.success { color: #34c759; }
+    a { color: #007aff; }
+    .back { font-size: 14px; }
+  </style>
+</head>
+<body>
+  <p class="back"><a href="index.html">← Back to app</a></p>
+  <h1>Contact</h1>
+  <p class="meta">Questions, bug reports, or feedback about NoIReject — drop us a note.</p>
+
+  <form id="contact-form" novalidate>
+    <label for="name">Name (optional)</label>
+    <input id="name" name="name" type="text" autocomplete="name" maxlength="200" />
+
+    <label for="email">Email (optional, only if you'd like a reply)</label>
+    <input id="email" name="email" type="email" autocomplete="email" maxlength="320" />
+
+    <label for="message">Message</label>
+    <textarea id="message" name="message" required maxlength="5000"></textarea>
+
+    <!-- honeypot for bots -->
+    <input class="hp" tabindex="-1" autocomplete="off" name="website" id="website" />
+
+    <button type="submit" id="submit-btn">Send</button>
+    <div id="status" class="status"></div>
+  </form>
+
+  <p style="margin-top: 32px; font-size: 13px;">
+    See our <a href="privacy.html">privacy policy</a> for how we handle your message.
+  </p>
+
+  <script>
+    (function () {
+      var SUPABASE_URL = 'https://xrvokelhhoxrqgdpgula.supabase.co';
+      var form = document.getElementById('contact-form');
+      var btn = document.getElementById('submit-btn');
+      var status = document.getElementById('status');
+
+      form.addEventListener('submit', async function (e) {
+        e.preventDefault();
+        status.className = 'status';
+        status.textContent = '';
+        var payload = {
+          name: form.name.value.trim(),
+          email: form.email.value.trim(),
+          message: form.message.value.trim(),
+          website: form.website.value
+        };
+        if (payload.message.length < 5) {
+          status.className = 'status error';
+          status.textContent = 'Please enter a message (at least 5 characters).';
+          return;
+        }
+        btn.disabled = true;
+        btn.textContent = 'Sending…';
+        try {
+          var res = await fetch(SUPABASE_URL + '/functions/v1/contact', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          var data = {};
+          try { data = await res.json(); } catch (_) {}
+          if (!res.ok) throw new Error(data.error || ('Send failed (' + res.status + ')'));
+          status.className = 'status success';
+          status.textContent = 'Thanks — message received. We\'ll be in touch if you left an email.';
+          form.reset();
+        } catch (err) {
+          status.className = 'status error';
+          status.textContent = err.message || 'Could not send. Please try again.';
+        } finally {
+          btn.disabled = false;
+          btn.textContent = 'Send';
+        }
+      });
+    })();
+  </script>
+</body>
+</html>
