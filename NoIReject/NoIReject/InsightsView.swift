@@ -16,23 +16,86 @@ struct UserFocus: Codable, Equatable {
 @MainActor
 final class FocusStore: ObservableObject {
     @Published var focus: UserFocus = .init()
+    @Published var isSyncing: Bool = false
+    @Published var lastError: String?
     private var userId: String?
+    private weak var auth: AuthService?
 
-    func load(for userId: String?) {
+    /// Loads from local cache immediately, then refreshes from Supabase.
+    func load(for userId: String?, auth: AuthService?) {
         self.userId = userId
-        guard let key = key(for: userId),
-              let data = UserDefaults.standard.data(forKey: key),
-              let decoded = try? JSONDecoder().decode(UserFocus.self, from: data) else {
+        self.auth = auth
+        // Local cache first (instant UI)
+        if let key = key(for: userId),
+           let data = UserDefaults.standard.data(forKey: key),
+           let decoded = try? JSONDecoder().decode(UserFocus.self, from: data) {
+            focus = decoded
+        } else {
             focus = .init()
-            return
         }
-        focus = decoded
+        // Then refresh from server
+        Task { await refreshFromServer() }
+    }
+
+    func refreshFromServer() async {
+        guard let auth, auth.isLoggedIn else { return }
+        isSyncing = true
+        defer { isSyncing = false }
+        do {
+            let (token, uid) = try await auth.validAccessToken()
+            if let row = try await SupabaseClient.shared.fetchFocus(userId: uid, accessToken: token) {
+                let remote = UserFocus(goals: row.goals, helpers: row.helpers, updatedAt: row.updatedAt)
+                // Prefer the newer of remote vs. local cache.
+                if let localUpdated = focus.updatedAt, let remoteUpdated = row.updatedAt,
+                   localUpdated > remoteUpdated, focus != remote {
+                    // Local has unsynced edits — push them up.
+                    _ = try await SupabaseClient.shared.upsertFocus(
+                        userId: uid, goals: focus.goals, helpers: focus.helpers, accessToken: token)
+                } else {
+                    focus = remote
+                    persistCache(remote)
+                }
+            } else if !focus.goals.isEmpty || !focus.helpers.isEmpty {
+                // No remote row yet but we have local data — push it.
+                let (token2, uid2) = try await auth.validAccessToken()
+                let stamped = try await SupabaseClient.shared.upsertFocus(
+                    userId: uid2, goals: focus.goals, helpers: focus.helpers, accessToken: token2)
+                var v = focus
+                v.updatedAt = stamped
+                focus = v
+                persistCache(v)
+            }
+        } catch {
+            lastError = error.localizedDescription
+        }
     }
 
     func save(_ value: UserFocus) {
         var v = value
         v.updatedAt = Date()
         focus = v
+        persistCache(v)
+        Task { await pushToServer(v) }
+    }
+
+    private func pushToServer(_ value: UserFocus) async {
+        guard let auth, auth.isLoggedIn else { return }
+        isSyncing = true
+        defer { isSyncing = false }
+        do {
+            let (token, uid) = try await auth.validAccessToken()
+            let stamped = try await SupabaseClient.shared.upsertFocus(
+                userId: uid, goals: value.goals, helpers: value.helpers, accessToken: token)
+            var v = value
+            v.updatedAt = stamped
+            if focus == value { focus = v }
+            persistCache(v)
+        } catch {
+            lastError = error.localizedDescription
+        }
+    }
+
+    private func persistCache(_ v: UserFocus) {
         guard let key = key(for: userId),
               let data = try? JSONEncoder().encode(v) else { return }
         UserDefaults.standard.set(data, forKey: key)
@@ -176,8 +239,8 @@ struct InsightsView: View {
             }
             .navigationTitle("Insights")
         }
-        .onAppear { focusStore.load(for: auth.userId) }
-        .onChange(of: auth.userId) { _, newID in focusStore.load(for: newID) }
+        .onAppear { focusStore.load(for: auth.userId, auth: auth) }
+        .onChange(of: auth.userId) { _, newID in focusStore.load(for: newID, auth: auth) }
         .sheet(isPresented: $showingFocusEditor) {
             FocusEditorView(initial: focusStore.focus) { updated in
                 focusStore.save(updated)

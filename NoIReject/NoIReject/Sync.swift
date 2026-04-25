@@ -205,6 +205,113 @@ final class SupabaseClient {
         try validate(resp, data: data)
     }
 
+    // MARK: REST — user_focus
+
+    private struct FocusRow: Codable {
+        let user_id: String?
+        let goals: String?
+        let helpers: String?
+        let updated_at: String?
+    }
+
+    /// Returns (goals, helpers, updatedAt) or nil if no row exists yet.
+    func fetchFocus(userId: String, accessToken: String) async throws -> (goals: String, helpers: String, updatedAt: Date?)? {
+        let req = restRequest("GET", path: "user_focus",
+                              query: [
+                                URLQueryItem(name: "user_id", value: "eq.\(userId)"),
+                                URLQueryItem(name: "select", value: "goals,helpers,updated_at"),
+                                URLQueryItem(name: "limit", value: "1")
+                              ],
+                              accessToken: accessToken)
+        let (data, resp) = try await session.data(for: req)
+        try validate(resp, data: data)
+        let rows = try JSONDecoder().decode([FocusRow].self, from: data)
+        guard let row = rows.first else { return nil }
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        let updated = row.updated_at.flatMap { s in
+            formatter.date(from: s) ?? ISO8601DateFormatter().date(from: s)
+        }
+        return (row.goals ?? "", row.helpers ?? "", updated)
+    }
+
+    func upsertFocus(userId: String, goals: String, helpers: String, accessToken: String) async throws -> Date {
+        let now = Date()
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        let body = try JSONSerialization.data(withJSONObject: [
+            "user_id": userId,
+            "goals": goals,
+            "helpers": helpers,
+            "updated_at": formatter.string(from: now)
+        ])
+        var comps = URLComponents(url: SupabaseConfig.url.appendingPathComponent("rest/v1/user_focus"),
+                                  resolvingAgainstBaseURL: false)!
+        comps.queryItems = [URLQueryItem(name: "on_conflict", value: "user_id")]
+        var req = URLRequest(url: comps.url!)
+        req.httpMethod = "POST"
+        req.setValue(SupabaseConfig.anonKey, forHTTPHeaderField: "apikey")
+        req.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.setValue("resolution=merge-duplicates,return=minimal", forHTTPHeaderField: "Prefer")
+        req.httpBody = body
+        let (data, resp) = try await session.data(for: req)
+        try validate(resp, data: data)
+        return now
+    }
+
+    // MARK: REST — user_custom_tags
+
+    private struct CustomTagsRow: Codable {
+        let user_id: String?
+        let tags: [String]?
+        let updated_at: String?
+    }
+
+    func fetchCustomTags(userId: String, accessToken: String) async throws -> (tags: [String], updatedAt: Date?)? {
+        let req = restRequest("GET", path: "user_custom_tags",
+                              query: [
+                                URLQueryItem(name: "user_id", value: "eq.\(userId)"),
+                                URLQueryItem(name: "select", value: "tags,updated_at"),
+                                URLQueryItem(name: "limit", value: "1")
+                              ],
+                              accessToken: accessToken)
+        let (data, resp) = try await session.data(for: req)
+        try validate(resp, data: data)
+        let rows = try JSONDecoder().decode([CustomTagsRow].self, from: data)
+        guard let row = rows.first else { return nil }
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        let updated = row.updated_at.flatMap { s in
+            formatter.date(from: s) ?? ISO8601DateFormatter().date(from: s)
+        }
+        return (row.tags ?? [], updated)
+    }
+
+    func upsertCustomTags(userId: String, tags: [String], accessToken: String) async throws -> Date {
+        let now = Date()
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        let body = try JSONSerialization.data(withJSONObject: [
+            "user_id": userId,
+            "tags": tags,
+            "updated_at": formatter.string(from: now)
+        ])
+        var comps = URLComponents(url: SupabaseConfig.url.appendingPathComponent("rest/v1/user_custom_tags"),
+                                  resolvingAgainstBaseURL: false)!
+        comps.queryItems = [URLQueryItem(name: "on_conflict", value: "user_id")]
+        var req = URLRequest(url: comps.url!)
+        req.httpMethod = "POST"
+        req.setValue(SupabaseConfig.anonKey, forHTTPHeaderField: "apikey")
+        req.setValue("Bearer \(accessToken)", forHTTPHeaderField: "Authorization")
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.setValue("resolution=merge-duplicates,return=minimal", forHTTPHeaderField: "Prefer")
+        req.httpBody = body
+        let (data, resp) = try await session.data(for: req)
+        try validate(resp, data: data)
+        return now
+    }
+
     private func validate(_ resp: URLResponse, data: Data) throws {
         guard let http = resp as? HTTPURLResponse else {
             throw SupabaseError(message: "No response")

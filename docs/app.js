@@ -19,6 +19,7 @@ async function initAuth() {
   if (session && session.user) {
     currentUser = session.user;
     await loadMoments();
+    fetchFocusFromServer();
     showApp();
   } else {
     showLoginScreen();
@@ -27,10 +28,12 @@ async function initAuth() {
     if (event === 'SIGNED_IN' && session && session.user) {
       currentUser = session.user;
       await loadMoments();
+      fetchFocusFromServer();
       showApp();
     } else if (event === 'SIGNED_OUT') {
       currentUser = null;
       cachedMoments = [];
+      cachedFocus = { goals: '', helpers: '', updatedAt: null };
       showLoginScreen();
     }
   });
@@ -371,17 +374,93 @@ function renderYear() {
     '<div class="card year-card">' + months + '</div>';
 }
 
-// MY FOCUS (goals & what helps)
+// MY FOCUS (goals & what helps) — synced via Supabase, with localStorage fallback
 function reflectKey() { return 'noireject_focus_' + (currentUser ? currentUser.id : 'anon'); }
 
-function loadReflect() {
+let cachedFocus = { goals: '', helpers: '', updatedAt: null };
+
+function loadReflectFromCache() {
   try {
     return JSON.parse(localStorage.getItem(reflectKey()) || 'null') || { goals: '', helpers: '', updatedAt: null };
   } catch { return { goals: '', helpers: '', updatedAt: null }; }
 }
 
-function saveReflect(data) {
+function writeReflectCache(data) {
   localStorage.setItem(reflectKey(), JSON.stringify(data));
+}
+
+function loadReflect() {
+  return cachedFocus;
+}
+
+async function fetchFocusFromServer() {
+  if (!currentUser) return;
+  cachedFocus = loadReflectFromCache();
+  try {
+    const { data, error } = await sb.from('user_focus')
+      .select('goals,helpers,updated_at')
+      .eq('user_id', currentUser.id)
+      .maybeSingle();
+    if (error) {
+      console.warn('fetchFocus error:', error);
+      return;
+    }
+    if (data) {
+      const remote = {
+        goals: data.goals || '',
+        helpers: data.helpers || '',
+        updatedAt: data.updated_at || null
+      };
+      const localUpdated = cachedFocus.updatedAt ? new Date(cachedFocus.updatedAt).getTime() : 0;
+      const remoteUpdated = remote.updatedAt ? new Date(remote.updatedAt).getTime() : 0;
+      const localDirty = (cachedFocus.goals !== remote.goals || cachedFocus.helpers !== remote.helpers);
+      if (localDirty && localUpdated > remoteUpdated) {
+        // Push local edits up
+        await pushFocusToServer(cachedFocus);
+      } else {
+        cachedFocus = remote;
+        writeReflectCache(remote);
+      }
+    } else if (cachedFocus.goals || cachedFocus.helpers) {
+      // No remote row yet but we have local — push it
+      await pushFocusToServer(cachedFocus);
+    }
+  } catch (e) {
+    console.warn('fetchFocus exception:', e);
+  }
+  if (currentTab === 'insights') renderInsights();
+}
+
+async function pushFocusToServer(data) {
+  if (!currentUser) return;
+  const updatedAt = new Date().toISOString();
+  const row = {
+    user_id: currentUser.id,
+    goals: data.goals || '',
+    helpers: data.helpers || '',
+    updated_at: updatedAt
+  };
+  const { error } = await sb.from('user_focus')
+    .upsert(row, { onConflict: 'user_id' });
+  if (error) {
+    console.error('pushFocus error:', error);
+    showToast('Could not sync focus: ' + error.message, true);
+    return;
+  }
+  cachedFocus = { goals: row.goals, helpers: row.helpers, updatedAt };
+  writeReflectCache(cachedFocus);
+}
+
+function saveReflect(data) {
+  const next = {
+    goals: data.goals || '',
+    helpers: data.helpers || '',
+    updatedAt: data.updatedAt || new Date().toISOString()
+  };
+  cachedFocus = next;
+  writeReflectCache(next);
+  // Fire and forget; UI already reflects optimistic update
+  pushFocusToServer(next);
 }
 
 function renderReflectCard() {
