@@ -9,24 +9,66 @@ struct AddMomentView: View {
     @EnvironmentObject private var store: MomentStore
     @Environment(\.dismiss) private var dismiss
 
-    @State private var momentType: MomentType = .uncomfortable
+    @State private var momentType: MomentType = .excited
     @State private var intensity: Int = 5
     @State private var selectedTags: Set<String> = []
     @State private var note: String = ""
     @AppStorage("customTags") private var storedCustomTags: String = ""
+    @AppStorage("hiddenTags") private var storedHiddenTags: String = ""
     @State private var newTagText: String = ""
+    @State private var tagPendingDelete: String? = nil
 
-    private var customTags: [String] {
+    private var localCustomTags: [String] {
         storedCustomTags.isEmpty ? [] : storedCustomTags.components(separatedBy: ",")
+    }
+    private var hiddenTags: Set<String> {
+        storedHiddenTags.isEmpty ? [] : Set(storedHiddenTags.components(separatedBy: ","))
+    }
+    /// Custom tags = locally added + any tags found in past moments (DB-backed),
+    /// minus predefined and minus user-hidden tags.
+    private var customTags: [String] {
+        let predefined = Set(predefinedTags)
+        let hidden = hiddenTags
+        let fromMoments = store.moments.flatMap { $0.tags }
+        var seen = Set<String>()
+        var result: [String] = []
+        for tag in localCustomTags + fromMoments {
+            let trimmed = tag.trimmingCharacters(in: .whitespaces)
+            guard !trimmed.isEmpty,
+                  !predefined.contains(trimmed),
+                  !hidden.contains(trimmed),
+                  !seen.contains(trimmed) else { continue }
+            seen.insert(trimmed)
+            result.append(trimmed)
+        }
+        return result
     }
     private var allTags: [String] { predefinedTags + customTags }
 
     private func addCustomTag() {
         let tag = newTagText.trimmingCharacters(in: .whitespaces)
         guard !tag.isEmpty, !allTags.contains(tag) else { newTagText = ""; return }
-        storedCustomTags = storedCustomTags.isEmpty ? tag : storedCustomTags + "," + tag
+        // Un-hide if previously hidden
+        if hiddenTags.contains(tag) {
+            storedHiddenTags = hiddenTags.subtracting([tag]).joined(separator: ",")
+        }
+        if !localCustomTags.contains(tag) {
+            storedCustomTags = storedCustomTags.isEmpty ? tag : storedCustomTags + "," + tag
+        }
         selectedTags.insert(tag)
         newTagText = ""
+    }
+
+    private func removeCustomTag(_ tag: String) {
+        // Remove from locally added list
+        if localCustomTags.contains(tag) {
+            storedCustomTags = localCustomTags.filter { $0 != tag }.joined(separator: ",")
+        }
+        // Hide so it won't reappear from past moments either
+        var hidden = hiddenTags
+        hidden.insert(tag)
+        storedHiddenTags = hidden.joined(separator: ",")
+        selectedTags.remove(tag)
     }
 
     private var previewScore: Int {
@@ -51,6 +93,7 @@ struct AddMomentView: View {
                 Section("Tags (optional)") {
                     LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 4), spacing: 8) {
                         ForEach(allTags, id: \.self) { tag in
+                            let isCustom = !predefinedTags.contains(tag)
                             Button {
                                 if selectedTags.contains(tag) {
                                     selectedTags.remove(tag)
@@ -69,9 +112,23 @@ struct AddMomentView: View {
                                     .clipShape(RoundedRectangle(cornerRadius: 8))
                             }
                             .buttonStyle(.plain)
+                            .contextMenu {
+                                if isCustom {
+                                    Button(role: .destructive) {
+                                        tagPendingDelete = tag
+                                    } label: {
+                                        Label("Remove tag", systemImage: "trash")
+                                    }
+                                }
+                            }
                         }
                     }
                     .padding(.vertical, 4)
+                    if !customTags.isEmpty {
+                        Text("Long-press a custom tag to remove it.")
+                            .font(.caption2)
+                            .foregroundStyle(.secondary)
+                    }
                     HStack {
                         TextField("Add custom tag...", text: $newTagText)
                             .textInputAutocapitalization(.words)
@@ -106,6 +163,20 @@ struct AddMomentView: View {
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Save") { save() }
                 }
+            }
+            .alert("Remove tag?",
+                   isPresented: Binding(
+                    get: { tagPendingDelete != nil },
+                    set: { if !$0 { tagPendingDelete = nil } }
+                   ),
+                   presenting: tagPendingDelete) { tag in
+                Button("Remove", role: .destructive) {
+                    removeCustomTag(tag)
+                    tagPendingDelete = nil
+                }
+                Button("Cancel", role: .cancel) { tagPendingDelete = nil }
+            } message: { tag in
+                Text("\"\(tag)\" will be hidden from the tag list. Past moments using this tag are not affected.")
             }
         }
     }
