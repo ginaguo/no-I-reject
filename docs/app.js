@@ -569,7 +569,9 @@ function renderInsights() {
     return;
   }
   const allDates = [...new Set(moments.map(m => m.date))].sort();
-  const avgScore = allDates.reduce((s, d) => s + scoreForDate(d), 0) / allDates.length;
+  const totalScore = moments.reduce((s, m) => s + momentScore(m), 0);
+  // Match iOS: integer-floored average daily score (sum across all moments / days logged).
+  const avgDaily = Math.trunc(totalScore / Math.max(allDates.length, 1));
   const streak   = calcStreak(moments);
   const tagMap   = {};
   moments.forEach(m => {
@@ -581,28 +583,40 @@ function renderInsights() {
     });
   });
   const tagStats = Object.entries(tagMap)
-    .map(([tag, { total, count }]) => ({ tag, total, count }))
-    .sort((a, b) => b.total - a.total);
+    .map(([tag, { total, count }]) => ({ tag, total, count, avg: total / count }))
+    .sort((a, b) => b.avg - a.avg);
 
+  const fmtAvg = a => (a >= 0 ? '+' : '') + Math.round(a) + ' avg';
   const tagRow = t =>
     '<div class="tag-stat-row">' +
       '<span class="tag-stat-name">' + esc(t.tag) + '</span>' +
-      '<span class="tag-stat-count">' + t.count + ' moment' + (t.count > 1 ? 's' : '') + '</span>' +
-      '<span class="tag-stat-avg ' + (t.total >= 0 ? 'pos' : 'neg') + '">' + (t.total > 0 ? '+' : '') + t.total + '</span>' +
+      '<span class="tag-stat-count">' + t.count + '×</span>' +
+      '<span class="tag-stat-avg ' + (t.avg >= 0 ? 'pos' : 'neg') + '">' + fmtAvg(t.avg) + '</span>' +
     '</div>';
 
-  const happy    = tagStats.filter(t => t.total > 0);
-  const draining = [...tagStats.filter(t => t.total < 0)].reverse();
+  const happy    = tagStats.filter(t => t.avg > 0);
+  const draining = tagStats.filter(t => t.avg <= 0).sort((a, b) => a.avg - b.avg);
+
+  const avgStr = (avgDaily > 0 ? '+' : '') + avgDaily;
+  const avgClass = avgDaily > 0 ? 'pos' : avgDaily < 0 ? 'neg' : '';
 
   el.innerHTML =
     renderReflectCard() +
     '<div class="card stats-card"><div class="stat-trio">' +
-      '<div class="stat-block"><div class="stat-val">' + emojiForScore(avgScore) + '</div><div class="stat-label">Overall</div></div>' +
-      '<div class="stat-block"><div class="stat-val">' + allDates.length + '</div><div class="stat-label">Days Logged</div></div>' +
+      '<div class="stat-block"><div class="stat-val">' + moments.length + '</div><div class="stat-label">Moments</div></div>' +
+      '<div class="stat-block"><div class="stat-val">' + allDates.length + '</div><div class="stat-label">Days</div></div>' +
       '<div class="stat-block"><div class="stat-val">' + streak + '\uD83D\uDD25</div><div class="stat-label">Streak</div></div>' +
     '</div></div>' +
-    (happy.length    ? '<div class="section-label">\uD83D\uDE0A What Makes You Happy</div><div class="list-card">' + happy.map(tagRow).join('') + '</div>' : '') +
-    (draining.length ? '<div class="section-label">\uD83D\uDE14 What Drains You</div><div class="list-card">' + draining.map(tagRow).join('') + '</div>' : '') +
+    '<div class="section-label">Your overall vibe</div>' +
+    '<div class="card overall-vibe-card">' +
+      '<span class="overall-vibe-emoji">' + emojiForScore(avgDaily) + '</span>' +
+      '<div class="overall-vibe-meta">' +
+        '<div class="overall-vibe-label">Average daily score</div>' +
+        '<div class="overall-vibe-value ' + avgClass + '">' + avgStr + '</div>' +
+      '</div>' +
+    '</div>' +
+    (happy.length    ? '<div class="section-label">\uD83D\uDE0A What Makes You Happy</div><div class="list-card">' + happy.slice(0, 5).map(tagRow).join('') + '</div>' : '') +
+    (draining.length ? '<div class="section-label">\uD83D\uDE14 What Drains You</div><div class="list-card">' + draining.slice(0, 5).map(tagRow).join('') + '</div>' : '') +
     (tagStats.length ? '<div class="section-label">All Tags</div><div class="list-card">' + tagStats.map(tagRow).join('') + '</div>' : '');
 }
 

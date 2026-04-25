@@ -344,6 +344,18 @@ header h1 { font-size: 22px; font-weight: 700; }
 .tag-stat-avg   { font-size: 15px; font-weight: 700; min-width: 44px; text-align: right; }
 .tag-stat-avg.pos { color: var(--excited); }
 .tag-stat-avg.neg { color: var(--uncomfortable); }
+.overall-vibe-card {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px 20px;
+}
+.overall-vibe-emoji { font-size: 40px; line-height: 1; }
+.overall-vibe-meta  { margin-left: auto; text-align: right; }
+.overall-vibe-label { font-size: 12px; color: var(--text2); }
+.overall-vibe-value { font-size: 22px; font-weight: 700; margin-top: 2px; }
+.overall-vibe-value.pos { color: var(--excited); }
+.overall-vibe-value.neg { color: var(--uncomfortable); }
 
 /* ── Overlay / Sheet ─────────────────────────────── */
 .overlay {

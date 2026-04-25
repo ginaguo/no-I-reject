@@ -147,13 +147,11 @@ struct InsightsView: View {
 
     private var currentStreak: Int {
         let cal = Calendar.current
+        let loggedDays = Set(moments.map { cal.startOfDay(for: $0.date) })
         var date = cal.startOfDay(for: Date())
         var count = 0
         for _ in 0..<365 {
-            let dayScore = moments
-                .filter { cal.isDate($0.date, inSameDayAs: date) }
-                .reduce(0) { $0 + $1.score }
-            if dayScore > 0 {
+            if loggedDays.contains(date) {
                 count += 1
             } else {
                 break
