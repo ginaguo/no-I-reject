@@ -7,22 +7,20 @@ import SwiftUI
 
 struct AddMomentView: View {
     @EnvironmentObject private var store: MomentStore
+    @EnvironmentObject private var customTagsStore: CustomTagsStore
     @Environment(\.dismiss) private var dismiss
 
     @State private var momentType: MomentType = .excited
     @State private var intensity: Int = 5
     @State private var selectedTags: Set<String> = []
     @State private var note: String = ""
-    @AppStorage("customTags") private var storedCustomTags: String = ""
     @AppStorage("hiddenTags") private var storedHiddenTags: String = ""
     @State private var newTagText: String = ""
     @State private var isEditingTags: Bool = false
     @State private var tagsMarkedForDelete: Set<String> = []
     @State private var showDeleteConfirm: Bool = false
 
-    private var localCustomTags: [String] {
-        storedCustomTags.isEmpty ? [] : storedCustomTags.components(separatedBy: ",")
-    }
+    private var localCustomTags: [String] { customTagsStore.tags }
     private var hiddenTags: Set<String> {
         storedHiddenTags.isEmpty ? [] : Set(storedHiddenTags.components(separatedBy: ","))
     }
@@ -54,18 +52,14 @@ struct AddMomentView: View {
         if hiddenTags.contains(tag) {
             storedHiddenTags = hiddenTags.subtracting([tag]).joined(separator: ",")
         }
-        if !localCustomTags.contains(tag) {
-            storedCustomTags = storedCustomTags.isEmpty ? tag : storedCustomTags + "," + tag
-        }
+        customTagsStore.add(tag)
         selectedTags.insert(tag)
         newTagText = ""
     }
 
     private func removeCustomTag(_ tag: String) {
-        // Remove from locally added list
-        if localCustomTags.contains(tag) {
-            storedCustomTags = localCustomTags.filter { $0 != tag }.joined(separator: ",")
-        }
+        // Remove from synced custom-tag list
+        customTagsStore.remove(tag)
         // Hide so it won't reappear from past moments either
         var hidden = hiddenTags
         hidden.insert(tag)

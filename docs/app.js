@@ -20,6 +20,7 @@ async function initAuth() {
     currentUser = session.user;
     await loadMoments();
     fetchFocusFromServer();
+    fetchCustomTagsFromServer();
     showApp();
   } else {
     showLoginScreen();
@@ -29,6 +30,7 @@ async function initAuth() {
       currentUser = session.user;
       await loadMoments();
       fetchFocusFromServer();
+      fetchCustomTagsFromServer();
       showApp();
     } else if (event === 'SIGNED_OUT') {
       currentUser = null;
@@ -170,7 +172,7 @@ async function persistAddMoment(moment) {
   }
 }
 
-// CUSTOM TAGS
+// CUSTOM TAGS — synced via Supabase (user_custom_tags), localStorage as cache
 function getCustomTags() {
   try {
     const raw = localStorage.getItem(CUSTOM_TAGS_KEY) || '';
@@ -179,6 +181,53 @@ function getCustomTags() {
 }
 function writeCustomTags(tags) { localStorage.setItem(CUSTOM_TAGS_KEY, tags.join(',')); }
 function getAllTags() { return [...PREDEFINED_TAGS, ...getCustomTags()]; }
+
+async function fetchCustomTagsFromServer() {
+  if (!currentUser) return;
+  try {
+    const { data, error } = await sb.from('user_custom_tags')
+      .select('tags,updated_at')
+      .eq('user_id', currentUser.id)
+      .maybeSingle();
+    if (error) { console.warn('fetchCustomTags error:', error); return; }
+    const local = getCustomTags();
+    if (data && Array.isArray(data.tags)) {
+      // Union local + remote so nothing gets lost.
+      const seen = new Set();
+      const merged = [];
+      for (const t of [...data.tags, ...local]) {
+        const v = (t || '').trim();
+        if (!v || seen.has(v)) continue;
+        seen.add(v); merged.push(v);
+      }
+      writeCustomTags(merged);
+      const sameAsRemote = merged.length === data.tags.length &&
+                            merged.every((t, i) => t === data.tags[i]);
+      if (!sameAsRemote) await pushCustomTagsToServer(merged);
+    } else if (local.length) {
+      await pushCustomTagsToServer(local);
+    }
+  } catch (e) {
+    console.warn('fetchCustomTags exception:', e);
+  }
+  if (currentTab === 'today') {
+    // re-render the add modal contents next time it opens — nothing to do now
+  }
+}
+
+async function pushCustomTagsToServer(tags) {
+  if (!currentUser) return;
+  const { error } = await sb.from('user_custom_tags')
+    .upsert({
+      user_id: currentUser.id,
+      tags,
+      updated_at: new Date().toISOString()
+    }, { onConflict: 'user_id' });
+  if (error) {
+    console.error('pushCustomTags error:', error);
+    showToast('Could not sync tags: ' + error.message, true);
+  }
+}
 
 // HELPERS
 function momentScore(m) { return m.type === 'excited' ? m.intensity : -m.intensity; }
@@ -673,10 +722,16 @@ function addCustomTag() {
   const tag   = input.value.trim();
   if (!tag) return;
   const custom = getCustomTags();
-  if (!custom.includes(tag) && !PREDEFINED_TAGS.includes(tag)) { custom.push(tag); writeCustomTags(custom); }
+  let changed = false;
+  if (!custom.includes(tag) && !PREDEFINED_TAGS.includes(tag)) {
+    custom.push(tag);
+    writeCustomTags(custom);
+    changed = true;
+  }
   if (!form.tags.includes(tag)) form.tags.push(tag);
   input.value = '';
   renderForm();
+  if (changed) pushCustomTagsToServer(custom);
 }
 
 function removeCustomTag(tag) {
@@ -684,6 +739,7 @@ function removeCustomTag(tag) {
   writeCustomTags(custom);
   form.tags = form.tags.filter(t => t !== tag);
   renderForm();
+  pushCustomTagsToServer(custom);
 }
 
 async function submitMoment() {

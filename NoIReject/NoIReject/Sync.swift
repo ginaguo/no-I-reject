@@ -483,3 +483,104 @@ final class MomentStore: ObservableObject {
         moments = cached
     }
 }
+
+// MARK: - CustomTagsStore
+
+/// Source of truth for the user's custom-tag list. Persists locally to
+/// `UserDefaults("customTags")` (a CSV string, matching the legacy
+/// `@AppStorage("customTags")` format) AND syncs the list to Supabase
+/// (`user_custom_tags` table) so it stays consistent across devices/web.
+@MainActor
+final class CustomTagsStore: ObservableObject {
+    @Published private(set) var tags: [String] = []
+    @Published var lastError: String?
+
+    private weak var auth: AuthService?
+    private let storageKey = "customTags" // CSV — matches legacy @AppStorage
+
+    init(auth: AuthService) {
+        self.auth = auth
+        tags = readLocal()
+    }
+
+    var csv: String { tags.joined(separator: ",") }
+
+    /// Refreshes from the server, merging with local edits (union by default).
+    func refresh() async {
+        guard let auth, auth.isLoggedIn else { return }
+        do {
+            let (token, uid) = try await auth.validAccessToken()
+            let local = tags
+            if let row = try await SupabaseClient.shared.fetchCustomTags(userId: uid, accessToken: token) {
+                // Union local + remote so we never lose a tag from either side.
+                var merged: [String] = []
+                var seen = Set<String>()
+                for t in row.tags + local {
+                    let trimmed = t.trimmingCharacters(in: .whitespaces)
+                    guard !trimmed.isEmpty, !seen.contains(trimmed) else { continue }
+                    seen.insert(trimmed)
+                    merged.append(trimmed)
+                }
+                tags = merged
+                writeLocal(merged)
+                // If merged differs from remote, push the union up.
+                if merged != row.tags {
+                    _ = try await SupabaseClient.shared.upsertCustomTags(
+                        userId: uid, tags: merged, accessToken: token)
+                }
+            } else if !local.isEmpty {
+                _ = try await SupabaseClient.shared.upsertCustomTags(
+                    userId: uid, tags: local, accessToken: token)
+            }
+        } catch {
+            lastError = error.localizedDescription
+        }
+    }
+
+    func add(_ rawTag: String) {
+        let tag = rawTag.trimmingCharacters(in: .whitespaces)
+        guard !tag.isEmpty, !tags.contains(tag) else { return }
+        var next = tags
+        next.append(tag)
+        tags = next
+        writeLocal(next)
+        Task { await push(next) }
+    }
+
+    func remove(_ tag: String) {
+        guard tags.contains(tag) else { return }
+        let next = tags.filter { $0 != tag }
+        tags = next
+        writeLocal(next)
+        Task { await push(next) }
+    }
+
+    /// Re-reads the local store. Call when the AppStorage-backed value may
+    /// have changed outside of this store.
+    func reloadFromLocal() {
+        tags = readLocal()
+    }
+
+    private func push(_ list: [String]) async {
+        guard let auth, auth.isLoggedIn else { return }
+        do {
+            let (token, uid) = try await auth.validAccessToken()
+            _ = try await SupabaseClient.shared.upsertCustomTags(
+                userId: uid, tags: list, accessToken: token)
+        } catch {
+            lastError = error.localizedDescription
+        }
+    }
+
+    private func readLocal() -> [String] {
+        let csv = UserDefaults.standard.string(forKey: storageKey) ?? ""
+        if csv.isEmpty { return [] }
+        return csv.components(separatedBy: ",")
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
+    }
+
+    private func writeLocal(_ list: [String]) {
+        UserDefaults.standard.set(list.joined(separator: ","), forKey: storageKey)
+    }
+}
