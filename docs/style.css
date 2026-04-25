@@ -660,6 +660,40 @@ header h1 { font-size: 22px; font-weight: 700; }
 }
 #signout-btn:hover { color: var(--uncomfortable); }
 
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: auto;
+}
+.header-link {
+  color: var(--text2);
+  font-size: 13px;
+  text-decoration: none;
+}
+.header-link:hover { color: var(--primary); }
+.header-danger {
+  background: none;
+  border: none;
+  color: var(--text2);
+  font-size: 13px;
+  cursor: pointer;
+  padding: 4px 0;
+}
+.header-danger:hover { color: var(--uncomfortable); }
+.header-danger:disabled { opacity: 0.5; cursor: default; }
+
+.login-foot {
+  margin-top: 18px;
+  text-align: center;
+  font-size: 12px;
+}
+.login-foot a {
+  color: var(--text2);
+  text-decoration: none;
+}
+.login-foot a:hover { color: var(--primary); }
+
 /* ── Desktop ─────────────────────────────────────── */
 @media (min-width: 500px) {
   #app {

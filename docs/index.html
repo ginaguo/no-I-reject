@@ -23,6 +23,9 @@
         <button id="signup-btn" class="secondary" onclick="handleSignUp()">Create Account</button>
         <div id="auth-error" class="auth-error hidden"></div>
       </div>
+      <div class="login-foot">
+        <a href="privacy.html" target="_blank" rel="noopener">Privacy Policy</a>
+      </div>
     </div>
   </div>
 
@@ -32,7 +35,11 @@
   <!-- Header -->
   <header>
     <h1 id="header-title">Today</h1>
-    <button id="signout-btn" onclick="handleSignOut()">Sign out</button>
+    <div class="header-actions">
+      <a class="header-link" href="privacy.html" target="_blank" rel="noopener">Privacy</a>
+      <button id="delete-account-btn" class="header-danger" onclick="handleDeleteAccount()">Delete account</button>
+      <button id="signout-btn" onclick="handleSignOut()">Sign out</button>
+    </div>
   </header>
 
   <!-- Tab Panes -->

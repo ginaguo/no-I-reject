@@ -10,6 +10,9 @@ struct TodayView: View {
     @EnvironmentObject private var store: MomentStore
     @State private var showingAddSheet = false
     @State private var showingSignOutConfirm = false
+    @State private var showingDeleteConfirm = false
+    @State private var isDeleting = false
+    @State private var deleteError: String?
 
     private var todayMoments: [Moment] {
         store.moments.filter { Calendar.current.isDateInToday($0.date) }
@@ -67,10 +70,17 @@ struct TodayView: View {
                         if let email = auth.email {
                             Text(email)
                         }
+                        Link("Privacy Policy",
+                             destination: URL(string: "https://zguo66-stoxx.github.io/no-I-reject/privacy.html")!)
                         Button("Sign Out", role: .destructive) {
                             // Defer so the menu fully dismisses before the dialog appears.
                             DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
                                 showingSignOutConfirm = true
+                            }
+                        }
+                        Button("Delete Account", role: .destructive) {
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                                showingDeleteConfirm = true
                             }
                         }
                     } label: {
@@ -97,6 +107,31 @@ struct TodayView: View {
                     Task { await auth.signOut() }
                 }
                 Button("Cancel", role: .cancel) {}
+            }
+            .confirmationDialog("Delete your account?",
+                                isPresented: $showingDeleteConfirm,
+                                titleVisibility: .visible) {
+                Button("Delete Account", role: .destructive) {
+                    Task {
+                        isDeleting = true
+                        defer { isDeleting = false }
+                        do {
+                            try await auth.deleteAccount()
+                        } catch {
+                            deleteError = error.localizedDescription
+                        }
+                    }
+                }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("This permanently removes your account and all your moments, tags, and goals. This cannot be undone.")
+            }
+            .alert("Could not delete account",
+                   isPresented: Binding(get: { deleteError != nil },
+                                        set: { if !$0 { deleteError = nil } })) {
+                Button("OK", role: .cancel) { deleteError = nil }
+            } message: {
+                Text(deleteError ?? "")
             }
             .overlay(alignment: .top) {
                 if let err = store.lastError {

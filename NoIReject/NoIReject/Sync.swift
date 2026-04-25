@@ -367,6 +367,33 @@ final class AuthService: ObservableObject {
         UserDefaults.standard.removeObject(forKey: storageKey)
     }
 
+    /// Permanently deletes the signed-in user's account by calling the
+    /// `delete-account` Supabase Edge Function. On success the user is
+    /// signed out locally as well. Throws on failure.
+    func deleteAccount() async throws {
+        guard let s = session else { throw SupabaseError(message: "Not logged in") }
+        let url = SupabaseConfig.url.appendingPathComponent("functions/v1/delete-account")
+        var req = URLRequest(url: url)
+        req.httpMethod = "POST"
+        req.setValue(SupabaseConfig.anonKey, forHTTPHeaderField: "apikey")
+        req.setValue("Bearer \(s.accessToken)", forHTTPHeaderField: "Authorization")
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        let (data, resp) = try await URLSession.shared.data(for: req)
+        guard let http = resp as? HTTPURLResponse else {
+            throw SupabaseError(message: "No response")
+        }
+        if !(200...299).contains(http.statusCode) {
+            let msg = (try? JSONSerialization.jsonObject(with: data) as? [String: Any])
+                .flatMap { $0["error"] as? String }
+                ?? String(data: data, encoding: .utf8)
+                ?? "Delete failed (\(http.statusCode))"
+            throw SupabaseError(message: msg)
+        }
+        // Local cleanup
+        session = nil
+        UserDefaults.standard.removeObject(forKey: storageKey)
+    }
+
     /// Returns a valid access token, refreshing if expired.
     func validAccessToken() async throws -> (token: String, userId: String) {
         guard var s = session else { throw SupabaseError(message: "Not logged in") }

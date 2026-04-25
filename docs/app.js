@@ -111,6 +111,54 @@ async function handleSignOut() {
   showLoginScreen();
 }
 
+async function handleDeleteAccount() {
+  if (!currentUser) return;
+  const confirm1 = window.confirm(
+    'Permanently delete your account?\n\n' +
+    'This removes your account and all your moments, tags, and goals. ' +
+    'This cannot be undone.'
+  );
+  if (!confirm1) return;
+  const typed = window.prompt('Type DELETE to confirm.');
+  if ((typed || '').trim().toUpperCase() !== 'DELETE') {
+    showToast('Cancelled — nothing was deleted.');
+    return;
+  }
+  const btn = document.getElementById('delete-account-btn');
+  if (btn) { btn.disabled = true; btn.textContent = 'Deleting…'; }
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    const token = session && session.access_token;
+    if (!token) throw new Error('No active session');
+    const res = await fetch(SUPABASE_URL + '/functions/v1/delete-account', {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + token,
+        'apikey': SUPABASE_KEY,
+        'Content-Type': 'application/json'
+      }
+    });
+    if (!res.ok) {
+      let msg = 'Delete failed (' + res.status + ')';
+      try { const j = await res.json(); if (j && j.error) msg = j.error; } catch(_) {}
+      throw new Error(msg);
+    }
+    // Clean up local state
+    try { await sb.auth.signOut({ scope: 'local' }); } catch(_) {}
+    currentUser = null;
+    cachedMoments = [];
+    cachedFocus = { goals: '', helpers: '', updatedAt: null };
+    try { localStorage.clear(); } catch(_) {}
+    showToast('Account deleted.');
+    showLoginScreen();
+  } catch (e) {
+    console.error('deleteAccount error:', e);
+    showToast('Could not delete account: ' + e.message, true);
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = 'Delete account'; }
+  }
+}
+
 function showLoginScreen() {
   document.getElementById('login-screen').classList.remove('hidden');
   document.getElementById('app-content').classList.add('hidden');
@@ -792,6 +840,7 @@ function bindAppListeners() {
 window.handleLogin        = handleLogin;
 window.handleSignUp       = handleSignUp;
 window.handleSignOut      = handleSignOut;
+window.handleDeleteAccount = handleDeleteAccount;
 window.showTab            = showTab;
 window.openAddModal       = openAddModal;
 window.closeAddModal      = closeAddModal;
