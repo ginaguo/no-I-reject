@@ -37,10 +37,18 @@
   <!-- Header -->
   <header>
     <h1 id="header-title">Today</h1>
-    <div class="header-actions">
-      <a class="header-link" href="privacy.html" target="_blank" rel="noopener">Privacy</a>
-      <button id="delete-account-btn" class="header-danger" onclick="handleDeleteAccount()">Delete account</button>
-      <button id="signout-btn" onclick="handleSignOut()">Sign out</button>
+    <div class="profile-menu">
+      <button id="profile-btn" class="profile-btn" aria-label="Account" onclick="toggleProfileMenu(event)">
+        <span aria-hidden="true">👤</span>
+      </button>
+      <div id="profile-dropdown" class="profile-dropdown hidden" role="menu">
+        <div id="profile-email" class="profile-email"></div>
+        <a class="profile-item" href="privacy.html" target="_blank" rel="noopener" role="menuitem">Privacy Policy</a>
+        <a class="profile-item" href="contact.html" target="_blank" rel="noopener" role="menuitem">Contact</a>
+        <hr class="profile-sep" />
+        <button class="profile-item" role="menuitem" onclick="handleSignOut()">Sign out</button>
+        <button class="profile-item danger" id="delete-account-btn" role="menuitem" onclick="handleDeleteAccount()">Delete account</button>
+      </div>
     </div>
   </header>
 

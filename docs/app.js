@@ -168,7 +168,21 @@ function showApp() {
   document.getElementById('login-screen').classList.add('hidden');
   document.getElementById('app-content').classList.remove('hidden');
   bindAppListeners();
+  const emailEl = document.getElementById('profile-email');
+  if (emailEl && currentUser) emailEl.textContent = currentUser.email || '';
   showTab('today');
+}
+
+function toggleProfileMenu(e) {
+  if (e) e.stopPropagation();
+  const dd = document.getElementById('profile-dropdown');
+  if (!dd) return;
+  dd.classList.toggle('hidden');
+}
+
+function closeProfileMenu() {
+  const dd = document.getElementById('profile-dropdown');
+  if (dd) dd.classList.add('hidden');
 }
 
 function showToast(msg, isError) {
@@ -834,6 +848,14 @@ function bindAppListeners() {
     el._bound = true;
     el.addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); addCustomTag(); } });
   }
+  if (!document._profileMenuBound) {
+    document._profileMenuBound = true;
+    document.addEventListener('click', (e) => {
+      const menu = document.querySelector('.profile-menu');
+      if (!menu || menu.contains(e.target)) return;
+      closeProfileMenu();
+    });
+  }
 }
 
 // WINDOW EXPORTS
@@ -841,6 +863,7 @@ window.handleLogin        = handleLogin;
 window.handleSignUp       = handleSignUp;
 window.handleSignOut      = handleSignOut;
 window.handleDeleteAccount = handleDeleteAccount;
+window.toggleProfileMenu  = toggleProfileMenu;
 window.showTab            = showTab;
 window.openAddModal       = openAddModal;
 window.closeAddModal      = closeAddModal;

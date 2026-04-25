@@ -72,6 +72,8 @@ struct TodayView: View {
                         }
                         Link("Privacy Policy",
                              destination: URL(string: "https://zguo66-stoxx.github.io/no-I-reject/privacy.html")!)
+                        Link("Contact",
+                             destination: URL(string: "https://zguo66-stoxx.github.io/no-I-reject/contact.html")!)
                         Button("Sign Out", role: .destructive) {
                             // Defer so the menu fully dismisses before the dialog appears.
                             DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {

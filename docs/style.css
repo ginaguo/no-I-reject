@@ -683,6 +683,59 @@ header h1 { font-size: 22px; font-weight: 700; }
 .header-danger:hover { color: var(--uncomfortable); }
 .header-danger:disabled { opacity: 0.5; cursor: default; }
 
+/* Profile menu (dropdown) ─────────────────────────── */
+.profile-menu { position: relative; margin-left: auto; }
+.profile-btn {
+  background: none;
+  border: none;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 8px;
+}
+.profile-btn:hover { background: rgba(0, 0, 0, 0.05); }
+.profile-dropdown {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  min-width: 200px;
+  background: #fff;
+  border: 1px solid var(--sep);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  padding: 6px 0;
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+}
+.profile-email {
+  padding: 8px 14px 4px;
+  font-size: 12px;
+  color: var(--text2);
+  word-break: break-all;
+}
+.profile-item {
+  display: block;
+  background: none;
+  border: none;
+  text-align: left;
+  width: 100%;
+  padding: 10px 14px;
+  font: inherit;
+  font-size: 14px;
+  color: var(--text);
+  text-decoration: none;
+  cursor: pointer;
+}
+.profile-item:hover { background: rgba(0, 0, 0, 0.05); }
+.profile-item.danger { color: var(--uncomfortable); }
+.profile-sep {
+  border: none;
+  border-top: 1px solid var(--sep);
+  margin: 4px 0;
+}
+
 .login-foot {
   margin-top: 18px;
   text-align: center;
