@@ -63,7 +63,7 @@ What it doesn't do
 
 Sync everywhere
 Sign up once and your data follows you between iPhone and the web app at
-zguo66-stoxx.github.io/no-I-reject. Sign in with Apple is supported.
+no-i-reject.vercel.app. Sign in with Apple is supported.
 
 Your data is yours
 Stored securely in your private account. Delete it anytime — there's a
@@ -91,9 +91,9 @@ mood,journal,moments,tracker,emotions,wellbeing,mindfulness,habit,reflection,men
 
 ## URLs
 
-- **Support URL**: `https://zguo66-stoxx.github.io/no-I-reject/contact.html`
-- **Marketing URL** (optional): `https://zguo66-stoxx.github.io/no-I-reject/`
-- **Privacy Policy URL**: `https://zguo66-stoxx.github.io/no-I-reject/privacy.html`
+- **Support URL**: `https://no-i-reject.vercel.app/contact.html`
+- **Marketing URL** (optional): `https://no-i-reject.vercel.app/`
+- **Privacy Policy URL**: `https://no-i-reject.vercel.app/privacy.html`
 
 ## App Review Information
 
@@ -108,7 +108,7 @@ mood,journal,moments,tracker,emotions,wellbeing,mindfulness,habit,reflection,men
 ```
 Sign in with the demo account above, or use Sign in with Apple.
 The app stores moments in Supabase Postgres; the same account works on the
-web at https://zguo66-stoxx.github.io/no-I-reject/.
+web at https://no-i-reject.vercel.app/.
 
 Account deletion: profile menu (top-left) → Delete Account. This calls a
 Supabase Edge Function that permanently removes the user and cascades all
