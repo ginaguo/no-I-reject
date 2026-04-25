@@ -109,6 +109,25 @@ final class SupabaseClient {
         _ = try? await session.data(for: req)
     }
 
+    /// Exchange an Apple identity token for a Supabase session.
+    /// `rawNonce` must be the unhashed nonce string used when requesting the Apple credential
+    /// (Supabase verifies it against the hashed nonce embedded in the id_token).
+    func signInWithApple(idToken: String, rawNonce: String) async throws -> StoredSession {
+        let url = SupabaseConfig.url.appendingPathComponent("auth/v1/token")
+        var comps = URLComponents(url: url, resolvingAgainstBaseURL: false)!
+        comps.queryItems = [URLQueryItem(name: "grant_type", value: "id_token")]
+        var req = URLRequest(url: comps.url!)
+        req.httpMethod = "POST"
+        req.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        req.setValue(SupabaseConfig.anonKey, forHTTPHeaderField: "apikey")
+        req.httpBody = try JSONSerialization.data(withJSONObject: [
+            "provider": "apple",
+            "id_token": idToken,
+            "nonce": rawNonce
+        ])
+        return try await performAuth(req)
+    }
+
     private func performAuth(_ req: URLRequest) async throws -> StoredSession {
         let (data, resp) = try await session.data(for: req)
         guard let http = resp as? HTTPURLResponse else { throw SupabaseError(message: "No response") }
@@ -221,6 +240,16 @@ final class AuthService: ObservableObject {
 
     func signUp(email: String, password: String) async {
         await runAuth { try await SupabaseClient.shared.signUp(email: email, password: password) }
+    }
+
+    func signInWithApple(idToken: String, rawNonce: String) async {
+        await runAuth {
+            try await SupabaseClient.shared.signInWithApple(idToken: idToken, rawNonce: rawNonce)
+        }
+    }
+
+    func reportAuthError(_ message: String) {
+        errorMessage = message
     }
 
     func signOut() async {

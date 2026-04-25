@@ -16,7 +16,9 @@ struct AddMomentView: View {
     @AppStorage("customTags") private var storedCustomTags: String = ""
     @AppStorage("hiddenTags") private var storedHiddenTags: String = ""
     @State private var newTagText: String = ""
-    @State private var tagPendingDelete: String? = nil
+    @State private var isEditingTags: Bool = false
+    @State private var tagsMarkedForDelete: Set<String> = []
+    @State private var showDeleteConfirm: Bool = false
 
     private var localCustomTags: [String] {
         storedCustomTags.isEmpty ? [] : storedCustomTags.components(separatedBy: ",")
@@ -71,6 +73,12 @@ struct AddMomentView: View {
         selectedTags.remove(tag)
     }
 
+    private func commitBulkDelete() {
+        for tag in tagsMarkedForDelete { removeCustomTag(tag) }
+        tagsMarkedForDelete.removeAll()
+        isEditingTags = false
+    }
+
     private var previewScore: Int {
         momentType == .excited ? intensity : -intensity
     }
@@ -90,51 +98,72 @@ struct AddMomentView: View {
                     ScoreScrollPicker(intensity: $intensity, momentType: momentType)
                 }
 
-                Section("Tags (optional)") {
+                Section {
                     LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 4), spacing: 8) {
                         ForEach(allTags, id: \.self) { tag in
                             let isCustom = !predefinedTags.contains(tag)
-                            Button {
-                                if selectedTags.contains(tag) {
-                                    selectedTags.remove(tag)
+                            let isSelected = selectedTags.contains(tag)
+                            let isMarked = tagsMarkedForDelete.contains(tag)
+                            TagChip(
+                                tag: tag,
+                                isCustom: isCustom,
+                                isSelected: isSelected,
+                                isMarked: isMarked,
+                                isEditing: isEditingTags
+                            ) {
+                                if isEditingTags {
+                                    guard isCustom else { return }
+                                    if isMarked { tagsMarkedForDelete.remove(tag) }
+                                    else { tagsMarkedForDelete.insert(tag) }
                                 } else {
-                                    selectedTags.insert(tag)
-                                }
-                            } label: {
-                                Text(tag)
-                                    .font(.caption)
-                                    .padding(.vertical, 6)
-                                    .frame(maxWidth: .infinity)
-                                    .background(
-                                        selectedTags.contains(tag) ? Color.accentColor : Color(.tertiarySystemBackground)
-                                    )
-                                    .foregroundStyle(selectedTags.contains(tag) ? .white : .primary)
-                                    .clipShape(RoundedRectangle(cornerRadius: 8))
-                            }
-                            .buttonStyle(.plain)
-                            .contextMenu {
-                                if isCustom {
-                                    Button(role: .destructive) {
-                                        tagPendingDelete = tag
-                                    } label: {
-                                        Label("Remove tag", systemImage: "trash")
-                                    }
+                                    if isSelected { selectedTags.remove(tag) }
+                                    else { selectedTags.insert(tag) }
                                 }
                             }
                         }
                     }
                     .padding(.vertical, 4)
-                    if !customTags.isEmpty {
-                        Text("Long-press a custom tag to remove it.")
-                            .font(.caption2)
-                            .foregroundStyle(.secondary)
+
+                    if isEditingTags {
+                        HStack {
+                            Button(role: .destructive) {
+                                showDeleteConfirm = true
+                            } label: {
+                                Label(
+                                    tagsMarkedForDelete.isEmpty
+                                        ? "Remove"
+                                        : "Remove (\(tagsMarkedForDelete.count))",
+                                    systemImage: "trash"
+                                )
+                            }
+                            .disabled(tagsMarkedForDelete.isEmpty)
+                            Spacer()
+                            Button("Done") {
+                                isEditingTags = false
+                                tagsMarkedForDelete.removeAll()
+                            }
+                        }
+                    } else {
+                        HStack {
+                            TextField("Add custom tag...", text: $newTagText)
+                                .textInputAutocapitalization(.words)
+                                .onSubmit { addCustomTag() }
+                            Button("Add") { addCustomTag() }
+                                .disabled(newTagText.trimmingCharacters(in: .whitespaces).isEmpty)
+                        }
                     }
+                } header: {
                     HStack {
-                        TextField("Add custom tag...", text: $newTagText)
-                            .textInputAutocapitalization(.words)
-                            .onSubmit { addCustomTag() }
-                        Button("Add") { addCustomTag() }
-                            .disabled(newTagText.trimmingCharacters(in: .whitespaces).isEmpty)
+                        Text("Tags (optional)")
+                        Spacer()
+                        if !customTags.isEmpty {
+                            Button(isEditingTags ? "Done" : "Edit") {
+                                isEditingTags.toggle()
+                                if !isEditingTags { tagsMarkedForDelete.removeAll() }
+                            }
+                            .font(.caption)
+                            .textCase(nil)
+                        }
                     }
                 }
 
@@ -164,19 +193,12 @@ struct AddMomentView: View {
                     Button("Save") { save() }
                 }
             }
-            .alert("Remove tag?",
-                   isPresented: Binding(
-                    get: { tagPendingDelete != nil },
-                    set: { if !$0 { tagPendingDelete = nil } }
-                   ),
-                   presenting: tagPendingDelete) { tag in
-                Button("Remove", role: .destructive) {
-                    removeCustomTag(tag)
-                    tagPendingDelete = nil
-                }
-                Button("Cancel", role: .cancel) { tagPendingDelete = nil }
-            } message: { tag in
-                Text("\"\(tag)\" will be hidden from the tag list. Past moments using this tag are not affected.")
+            .alert("Remove \(tagsMarkedForDelete.count) tag\(tagsMarkedForDelete.count == 1 ? "" : "s")?",
+                   isPresented: $showDeleteConfirm) {
+                Button("Remove", role: .destructive) { commitBulkDelete() }
+                Button("Cancel", role: .cancel) { }
+            } message: {
+                Text("These tags will be hidden from the tag list. Past moments using them are not affected.")
             }
         }
     }
@@ -234,5 +256,57 @@ struct ScoreScrollPicker: View {
             .onChange(of: scrolledID) { _, v in if let v { intensity = v } }
         }
         .padding(.vertical, 4)
+    }
+}
+
+private struct TagChip: View {
+    let tag: String
+    let isCustom: Bool
+    let isSelected: Bool
+    let isMarked: Bool
+    let isEditing: Bool
+    let action: () -> Void
+
+    private var background: Color {
+        if isEditing {
+            if isMarked { return Color.red.opacity(0.85) }
+            if isCustom { return Color(.tertiarySystemBackground) }
+            return Color(.tertiarySystemBackground).opacity(0.4)
+        }
+        return isSelected ? Color.accentColor : Color(.tertiarySystemBackground)
+    }
+
+    private var foreground: Color {
+        if isEditing {
+            if isMarked { return .white }
+            return isCustom ? .primary : .secondary
+        }
+        return isSelected ? .white : .primary
+    }
+
+    private var borderColor: Color {
+        (isEditing && isCustom && !isMarked) ? Color.red.opacity(0.6) : .clear
+    }
+
+    var body: some View {
+        Button(action: action) {
+            Text(tag)
+                .font(.caption)
+                .lineLimit(1)
+                .minimumScaleFactor(0.7)
+                .padding(.vertical, 6)
+                .padding(.horizontal, 4)
+                .frame(maxWidth: .infinity)
+                .background(background)
+                .foregroundStyle(foreground)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 8)
+                        .strokeBorder(borderColor,
+                                      style: StrokeStyle(lineWidth: 1, dash: [3]))
+                )
+                .clipShape(RoundedRectangle(cornerRadius: 8))
+        }
+        .buttonStyle(.plain)
+        .disabled(isEditing && !isCustom)
     }
 }

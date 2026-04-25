@@ -4,11 +4,13 @@
 //
 
 import SwiftUI
+import AuthenticationServices
 
 struct LoginView: View {
     @EnvironmentObject private var auth: AuthService
     @State private var email: String = ""
     @State private var password: String = ""
+    @State private var pendingAppleNonce: String?
     @FocusState private var focused: Field?
 
     enum Field { case email, password }
@@ -72,6 +74,43 @@ struct LoginView: View {
                 }
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, 12)
+                .disabled(auth.isAuthenticating)
+
+                HStack {
+                    VStack { Divider() }
+                    Text("or").font(.caption).foregroundStyle(.secondary)
+                    VStack { Divider() }
+                }
+                .padding(.vertical, 4)
+
+                SignInWithAppleButton(.signIn) { request in
+                    let (raw, hashed) = AppleSignInNonce.make()
+                    pendingAppleNonce = raw
+                    request.requestedScopes = [.fullName, .email]
+                    request.nonce = hashed
+                } onCompletion: { result in
+                    switch result {
+                    case .success(let authz):
+                        guard let cred = authz.credential as? ASAuthorizationAppleIDCredential,
+                              let tokenData = cred.identityToken,
+                              let idToken = String(data: tokenData, encoding: .utf8),
+                              let raw = pendingAppleNonce else {
+                            auth.reportAuthError("Apple sign-in failed: missing token")
+                            return
+                        }
+                        Task {
+                            await auth.signInWithApple(idToken: idToken, rawNonce: raw)
+                            pendingAppleNonce = nil
+                        }
+                    case .failure(let err):
+                        if (err as? ASAuthorizationError)?.code != .canceled {
+                            auth.reportAuthError(err.localizedDescription)
+                        }
+                    }
+                }
+                .signInWithAppleButtonStyle(.black)
+                .frame(height: 48)
+                .clipShape(RoundedRectangle(cornerRadius: 10))
                 .disabled(auth.isAuthenticating)
 
                 if let err = auth.errorMessage, !err.isEmpty {
