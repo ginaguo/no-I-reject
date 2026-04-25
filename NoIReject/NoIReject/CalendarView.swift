@@ -2,19 +2,18 @@
 //  CalendarView.swift
 //  NoIReject
 //
-//  Created by ZhilanGuo on 2026/4/4.
-//
 
 import SwiftUI
-import SwiftData
 
 struct CalendarView: View {
-    @Query(sort: \Moment.date) private var moments: [Moment]
+    @EnvironmentObject private var store: MomentStore
     @State private var displayedMonth: Date = Calendar.current.startOfMonth(for: Date())
     @State private var selectedDay: SelectedDay?
 
     private let calendar = Calendar.current
     private let columns = Array(repeating: GridItem(.flexible()), count: 7)
+
+    private var moments: [Moment] { store.moments }
 
     private var weekdayHeaders: [String] {
         let symbols = calendar.veryShortWeekdaySymbols
@@ -47,14 +46,11 @@ struct CalendarView: View {
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                // Month navigation
                 HStack {
                     Button {
                         displayedMonth = calendar.date(byAdding: .month, value: -1, to: displayedMonth) ?? displayedMonth
                     } label: {
-                        Image(systemName: "chevron.left")
-                            .font(.title2)
-                            .padding(8)
+                        Image(systemName: "chevron.left").font(.title2).padding(8)
                     }
                     Spacer()
                     Text(displayedMonth, format: .dateTime.year().month(.wide))
@@ -63,15 +59,11 @@ struct CalendarView: View {
                     Button {
                         displayedMonth = calendar.date(byAdding: .month, value: 1, to: displayedMonth) ?? displayedMonth
                     } label: {
-                        Image(systemName: "chevron.right")
-                            .font(.title2)
-                            .padding(8)
+                        Image(systemName: "chevron.right").font(.title2).padding(8)
                     }
                 }
-                .padding(.horizontal, 12)
-                .padding(.top, 8)
+                .padding(.horizontal, 12).padding(.top, 8)
 
-                // Weekday header row
                 LazyVGrid(columns: columns, spacing: 4) {
                     ForEach(weekdayHeaders, id: \.self) { symbol in
                         Text(symbol)
@@ -80,10 +72,8 @@ struct CalendarView: View {
                             .frame(maxWidth: .infinity)
                     }
                 }
-                .padding(.horizontal, 12)
-                .padding(.top, 8)
+                .padding(.horizontal, 12).padding(.top, 8)
 
-                // Day grid
                 LazyVGrid(columns: columns, spacing: 8) {
                     ForEach(Array(daysInMonth.enumerated()), id: \.offset) { _, date in
                         if let date {
@@ -96,8 +86,7 @@ struct CalendarView: View {
                         }
                     }
                 }
-                .padding(.horizontal, 12)
-                .padding(.top, 4)
+                .padding(.horizontal, 12).padding(.top, 4)
 
                 Spacer()
             }
@@ -195,9 +184,4 @@ extension Calendar {
         let components = dateComponents([.year, .month], from: date)
         return self.date(from: components) ?? date
     }
-}
-
-#Preview {
-    CalendarView()
-        .modelContainer(for: Moment.self, inMemory: true)
 }

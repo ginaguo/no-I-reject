@@ -2,14 +2,11 @@
 //  YearView.swift
 //  NoIReject
 //
-//  Created by ZhilanGuo on 2026/4/4.
-//
 
 import SwiftUI
-import SwiftData
 
 struct YearView: View {
-    @Query(sort: \Moment.date) private var moments: [Moment]
+    @EnvironmentObject private var store: MomentStore
     @State private var displayedYear: Int = Calendar.current.component(.year, from: Date())
 
     private let calendar = Calendar.current
@@ -17,6 +14,8 @@ struct YearView: View {
         "Jan", "Feb", "Mar", "Apr", "May", "Jun",
         "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"
     ]
+
+    private var moments: [Moment] { store.moments }
 
     private func scoreFor(date: Date) -> Int? {
         let dayMoments = moments.filter { calendar.isDate($0.date, inSameDayAs: date) }
@@ -57,25 +56,19 @@ struct YearView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
-                    // Year navigation
                     HStack {
-                        Button {
-                            displayedYear -= 1
-                        } label: {
+                        Button { displayedYear -= 1 } label: {
                             Image(systemName: "chevron.left").font(.title2)
                         }
                         Spacer()
                         Text(String(displayedYear)).font(.title2.bold())
                         Spacer()
-                        Button {
-                            displayedYear += 1
-                        } label: {
+                        Button { displayedYear += 1 } label: {
                             Image(systemName: "chevron.right").font(.title2)
                         }
                     }
                     .padding(.horizontal)
 
-                    // Color legend
                     HStack(spacing: 6) {
                         Text("Low").font(.caption).foregroundStyle(.secondary)
                         ForEach([-40, -20, 0, 20, 40], id: \.self) { s in
@@ -87,7 +80,6 @@ struct YearView: View {
                     }
                     .padding(.horizontal)
 
-                    // Month strips
                     ForEach(Array(1...12), id: \.self) { month in
                         YearMonthStrip(
                             monthName: Self.monthNames[month - 1],
@@ -141,9 +133,4 @@ struct YearMonthStrip: View {
         }
         .padding(.horizontal)
     }
-}
-
-#Preview {
-    YearView()
-        .modelContainer(for: Moment.self, inMemory: true)
 }

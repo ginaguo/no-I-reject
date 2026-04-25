@@ -2,14 +2,11 @@
 //  AddMomentView.swift
 //  NoIReject
 //
-//  Created by ZhilanGuo on 2026/4/4.
-//
 
 import SwiftUI
-import SwiftData
 
 struct AddMomentView: View {
-    @Environment(\.modelContext) private var modelContext
+    @EnvironmentObject private var store: MomentStore
     @Environment(\.dismiss) private var dismiss
 
     @State private var momentType: MomentType = .uncomfortable
@@ -120,7 +117,7 @@ struct AddMomentView: View {
             tags: Array(selectedTags),
             note: note
         )
-        modelContext.insert(moment)
+        Task { await store.add(moment) }
         dismiss()
     }
 }
@@ -167,9 +164,4 @@ struct ScoreScrollPicker: View {
         }
         .padding(.vertical, 4)
     }
-}
-
-#Preview {
-    AddMomentView()
-        .modelContainer(for: Moment.self, inMemory: true)
 }

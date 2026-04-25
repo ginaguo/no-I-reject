@@ -2,12 +2,13 @@
 //  ContentView.swift
 //  NoIReject
 //
-//  Created by ZhilanGuo on 2026/4/4.
-//
 
 import SwiftUI
 
 struct ContentView: View {
+    @EnvironmentObject private var auth: AuthService
+    @EnvironmentObject private var store: MomentStore
+
     var body: some View {
         TabView {
             TodayView()
@@ -24,5 +25,6 @@ struct ContentView: View {
 
 #Preview {
     ContentView()
-        .modelContainer(for: Moment.self, inMemory: true)
+        .environmentObject(AuthService())
+        .environmentObject(MomentStore(auth: AuthService()))
 }

@@ -2,33 +2,48 @@
 //  NoIRejectApp.swift
 //  NoIReject
 //
-//  Created by ZhilanGuo on 2026/4/4.
-//
 
 import SwiftUI
-import SwiftData
 
 @main
 struct NoIRejectApp: App {
-    var sharedModelContainer: ModelContainer = {
-        let schema = Schema([
-            Moment.self,
-        ])
-        let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
+    @StateObject private var auth = AuthService()
+    @StateObject private var store: MomentStore
 
-        do {
-            return try ModelContainer(for: schema, configurations: [modelConfiguration])
-        } catch {
-            // Schema changed (e.g. during development) — wipe and recreate the store.
-            let inMemoryConfig = ModelConfiguration(schema: schema, isStoredInMemoryOnly: true)
-            return try! ModelContainer(for: schema, configurations: [inMemoryConfig])
-        }
-    }()
+    init() {
+        let auth = AuthService()
+        _auth = StateObject(wrappedValue: auth)
+        _store = StateObject(wrappedValue: MomentStore(auth: auth))
+    }
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            RootView()
+                .environmentObject(auth)
+                .environmentObject(store)
         }
-        .modelContainer(sharedModelContainer)
+    }
+}
+
+struct RootView: View {
+    @EnvironmentObject private var auth: AuthService
+    @EnvironmentObject private var store: MomentStore
+
+    var body: some View {
+        Group {
+            if auth.isLoggedIn {
+                ContentView()
+                    .task { await store.reload() }
+            } else {
+                LoginView()
+            }
+        }
+        .onChange(of: auth.isLoggedIn) { _, loggedIn in
+            if loggedIn {
+                Task { await store.reload() }
+            } else {
+                store.clear()
+            }
+        }
     }
 }

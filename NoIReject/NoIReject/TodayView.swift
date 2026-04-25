@@ -2,19 +2,17 @@
 //  TodayView.swift
 //  NoIReject
 //
-//  Created by ZhilanGuo on 2026/4/4.
-//
 
 import SwiftUI
-import SwiftData
 
 struct TodayView: View {
-    @Environment(\.modelContext) private var modelContext
-    @Query(sort: \Moment.date, order: .reverse) private var allMoments: [Moment]
+    @EnvironmentObject private var auth: AuthService
+    @EnvironmentObject private var store: MomentStore
     @State private var showingAddSheet = false
+    @State private var showingSignOutConfirm = false
 
     private var todayMoments: [Moment] {
-        allMoments.filter { Calendar.current.isDateInToday($0.date) }
+        store.moments.filter { Calendar.current.isDateInToday($0.date) }
     }
 
     private var todayScore: Int {
@@ -52,14 +50,34 @@ struct TodayView: View {
                             MomentRow(moment: moment)
                         }
                         .onDelete { offsets in
-                            for i in offsets { modelContext.delete(todayMoments[i]) }
+                            let toDelete = offsets.map { todayMoments[$0] }
+                            Task {
+                                for m in toDelete { await store.delete(m) }
+                            }
                         }
                     }
                 }
                 .listStyle(.plain)
+                .refreshable { await store.reload() }
             }
             .navigationTitle("Today")
             .toolbar {
+                ToolbarItem(placement: .navigationBarLeading) {
+                    Menu {
+                        if let email = auth.email {
+                            Text(email)
+                        }
+                        Button("Sign Out", role: .destructive) {
+                            // Defer so the menu fully dismisses before the dialog appears.
+                            DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+                                showingSignOutConfirm = true
+                            }
+                        }
+                    } label: {
+                        Image(systemName: "person.crop.circle")
+                            .font(.title2)
+                    }
+                }
                 ToolbarItem(placement: .navigationBarTrailing) {
                     Button {
                         showingAddSheet = true
@@ -71,6 +89,26 @@ struct TodayView: View {
             }
             .sheet(isPresented: $showingAddSheet) {
                 AddMomentView()
+            }
+            .confirmationDialog("Sign out?",
+                                isPresented: $showingSignOutConfirm,
+                                titleVisibility: .visible) {
+                Button("Sign Out", role: .destructive) {
+                    Task { await auth.signOut() }
+                }
+                Button("Cancel", role: .cancel) {}
+            }
+            .overlay(alignment: .top) {
+                if let err = store.lastError {
+                    Text(err)
+                        .font(.caption)
+                        .padding(8)
+                        .background(Color.red.opacity(0.85))
+                        .foregroundStyle(.white)
+                        .clipShape(RoundedRectangle(cornerRadius: 6))
+                        .padding(.top, 4)
+                        .onTapGesture { store.lastError = nil }
+                }
             }
         }
     }
@@ -113,9 +151,4 @@ struct MomentRow: View {
         }
         .padding(.vertical, 4)
     }
-}
-
-#Preview {
-    TodayView()
-        .modelContainer(for: Moment.self, inMemory: true)
 }

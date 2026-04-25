@@ -91,7 +91,20 @@ async function handleSignUp() {
   }
 }
 
-async function handleSignOut() { await sb.auth.signOut(); }
+async function handleSignOut() {
+  try {
+    // 'local' avoids a network call to revoke; we only need to clear the
+    // session in this browser. This also succeeds even if the access token
+    // is already expired, which the default 'global' scope can choke on.
+    await sb.auth.signOut({ scope: 'local' });
+  } catch (e) {
+    console.warn('signOut error (ignored):', e);
+  }
+  // Force the UI back to login regardless of whether the SIGNED_OUT event fires.
+  currentUser = null;
+  cachedMoments = [];
+  showLoginScreen();
+}
 
 function showLoginScreen() {
   document.getElementById('login-screen').classList.remove('hidden');

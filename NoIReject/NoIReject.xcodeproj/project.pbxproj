@@ -17,6 +17,8 @@
 		AA0002032F810CDF00933523 /* CalendarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0001032F810CDF00933523 /* CalendarView.swift */; };
 		AA0002042F810CDF00933523 /* YearView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0001042F810CDF00933523 /* YearView.swift */; };
 		AA0002052F810CDF00933523 /* InsightsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0001052F810CDF00933523 /* InsightsView.swift */; };
+		AA0002062F810CDF00933523 /* Sync.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0001062F810CDF00933523 /* Sync.swift */; };
+		AA0002072F810CDF00933523 /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA0001072F810CDF00933523 /* LoginView.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -31,6 +33,8 @@
 		AA0001032F810CDF00933523 /* CalendarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CalendarView.swift; sourceTree = "<group>"; };
 		AA0001042F810CDF00933523 /* YearView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = YearView.swift; sourceTree = "<group>"; };
 		AA0001052F810CDF00933523 /* InsightsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = InsightsView.swift; sourceTree = "<group>"; };
+		AA0001062F810CDF00933523 /* Sync.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Sync.swift; sourceTree = "<group>"; };
+		AA0001072F810CDF00933523 /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -71,6 +75,8 @@
 				AA0001032F810CDF00933523 /* CalendarView.swift */,
 				AA0001042F810CDF00933523 /* YearView.swift */,
 				AA0001052F810CDF00933523 /* InsightsView.swift */,
+				AA0001062F810CDF00933523 /* Sync.swift */,
+				AA0001072F810CDF00933523 /* LoginView.swift */,
 				69A3B4E92F810CE500933523 /* Assets.xcassets */,
 				69A3B4EB2F810CE500933523 /* Preview Content */,
 			);
@@ -113,7 +119,7 @@
 			attributes = {
 				BuildIndependentTargetsInParallel = 1;
 				LastSwiftUpdateCheck = 1520;
-				LastUpgradeCheck = 1520;
+				LastUpgradeCheck = 1640;
 				TargetAttributes = {
 					69A3B4DF2F810CDF00933523 = {
 						CreatedOnToolsVersion = 15.2;
@@ -163,6 +169,8 @@
 				AA0002032F810CDF00933523 /* CalendarView.swift in Sources */,
 				AA0002042F810CDF00933523 /* YearView.swift in Sources */,
 				AA0002052F810CDF00933523 /* InsightsView.swift in Sources */,
+				AA0002062F810CDF00933523 /* Sync.swift in Sources */,
+				AA0002072F810CDF00933523 /* LoginView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -204,6 +212,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = AV8TWU768V;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_TESTABILITY = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
@@ -267,6 +276,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				COPY_PHASE_STRIP = NO;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = AV8TWU768V;
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;

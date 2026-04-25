@@ -2,14 +2,57 @@
 //  InsightsView.swift
 //  NoIReject
 //
-//  Created by ZhilanGuo on 2026/4/4.
-//
 
 import SwiftUI
-import SwiftData
+
+// MARK: - Focus storage (per-user, local)
+
+struct UserFocus: Codable, Equatable {
+    var goals: String = ""
+    var helpers: String = ""
+    var updatedAt: Date? = nil
+}
+
+@MainActor
+final class FocusStore: ObservableObject {
+    @Published var focus: UserFocus = .init()
+    private var userId: String?
+
+    func load(for userId: String?) {
+        self.userId = userId
+        guard let key = key(for: userId),
+              let data = UserDefaults.standard.data(forKey: key),
+              let decoded = try? JSONDecoder().decode(UserFocus.self, from: data) else {
+            focus = .init()
+            return
+        }
+        focus = decoded
+    }
+
+    func save(_ value: UserFocus) {
+        var v = value
+        v.updatedAt = Date()
+        focus = v
+        guard let key = key(for: userId),
+              let data = try? JSONEncoder().encode(v) else { return }
+        UserDefaults.standard.set(data, forKey: key)
+    }
+
+    private func key(for userId: String?) -> String? {
+        guard let userId else { return nil }
+        return "noireject.focus.\(userId)"
+    }
+}
+
+// MARK: - InsightsView
 
 struct InsightsView: View {
-    @Query(sort: \Moment.date) private var moments: [Moment]
+    @EnvironmentObject private var auth: AuthService
+    @EnvironmentObject private var store: MomentStore
+    @StateObject private var focusStore = FocusStore()
+    @State private var showingFocusEditor = false
+
+    private var moments: [Moment] { store.moments }
 
     struct TagStat: Identifiable {
         var id: String { tag }
@@ -71,7 +114,15 @@ struct InsightsView: View {
     var body: some View {
         NavigationStack {
             List {
-                // Summary cards
+                // My Focus (goals & helpers)
+                Section {
+                    FocusCard(focus: focusStore.focus) {
+                        showingFocusEditor = true
+                    }
+                    .listRowInsets(EdgeInsets(top: 8, leading: 0, bottom: 8, trailing: 0))
+                    .listRowBackground(Color.clear)
+                }
+
                 Section {
                     HStack(spacing: 8) {
                         InsightCard(value: "\(moments.count)", label: "Moments", color: .blue)
@@ -90,7 +141,6 @@ struct InsightsView: View {
                     )
                     .listRowBackground(Color.clear)
                 } else {
-                    // Overall mood
                     Section("Your overall vibe") {
                         HStack {
                             Text(overallEmoji).font(.largeTitle)
@@ -126,8 +176,139 @@ struct InsightsView: View {
             }
             .navigationTitle("Insights")
         }
+        .onAppear { focusStore.load(for: auth.userId) }
+        .onChange(of: auth.userId) { _, newID in focusStore.load(for: newID) }
+        .sheet(isPresented: $showingFocusEditor) {
+            FocusEditorView(initial: focusStore.focus) { updated in
+                focusStore.save(updated)
+            }
+        }
     }
 }
+
+// MARK: - Focus card
+
+struct FocusCard: View {
+    let focus: UserFocus
+    let onEdit: () -> Void
+
+    private var goals: [String] {
+        focus.goals.split(whereSeparator: \.isNewline).map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
+    }
+    private var helpers: [String] {
+        focus.helpers.split(whereSeparator: \.isNewline).map { $0.trimmingCharacters(in: .whitespaces) }.filter { !$0.isEmpty }
+    }
+    private var isEmpty: Bool { goals.isEmpty && helpers.isEmpty }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack {
+                Text("📍 My Focus")
+                    .font(.headline)
+                Spacer()
+                Button(action: onEdit) {
+                    Text(isEmpty ? "+ Add" : "Edit")
+                        .font(.subheadline.weight(.semibold))
+                }
+            }
+
+            FocusSection(title: "🎯 Goals", items: goals)
+            FocusSection(title: "💚 What Helps Me", items: helpers)
+
+            if let updated = focus.updatedAt {
+                Text("Updated \(updated.formatted(.dateTime.month(.abbreviated).day()))")
+                    .font(.caption2)
+                    .foregroundStyle(.secondary)
+            }
+        }
+        .padding(14)
+        .background(Color(.secondarySystemBackground))
+        .clipShape(RoundedRectangle(cornerRadius: 12))
+    }
+}
+
+private struct FocusSection: View {
+    let title: String
+    let items: [String]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(title)
+                .font(.subheadline.weight(.semibold))
+                .foregroundStyle(.secondary)
+            if items.isEmpty {
+                Text("Nothing set yet")
+                    .font(.subheadline)
+                    .foregroundStyle(.tertiary)
+                    .italic()
+            } else {
+                ForEach(items, id: \.self) { item in
+                    HStack(alignment: .top, spacing: 6) {
+                        Text("•").foregroundStyle(.secondary)
+                        Text(item).font(.subheadline)
+                    }
+                }
+            }
+        }
+    }
+}
+
+// MARK: - Focus editor
+
+struct FocusEditorView: View {
+    let initial: UserFocus
+    let onSave: (UserFocus) -> Void
+
+    @Environment(\.dismiss) private var dismiss
+    @State private var goals: String = ""
+    @State private var helpers: String = ""
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section {
+                    TextField("e.g. Run a 5k by June\nRead 2 books this month\nBe more present with family",
+                              text: $goals, axis: .vertical)
+                        .lineLimit(4...10)
+                } header: {
+                    Text("🎯 Goals")
+                } footer: {
+                    Text("One goal per line — update whenever things change.")
+                }
+
+                Section {
+                    TextField("e.g. Morning walk\nCall a friend\nCooking something new",
+                              text: $helpers, axis: .vertical)
+                        .lineLimit(4...10)
+                } header: {
+                    Text("💚 What Helps Me")
+                } footer: {
+                    Text("Things that lift your mood when you're struggling.")
+                }
+            }
+            .navigationTitle("My Focus")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") {
+                        onSave(UserFocus(goals: goals.trimmingCharacters(in: .whitespacesAndNewlines),
+                                         helpers: helpers.trimmingCharacters(in: .whitespacesAndNewlines)))
+                        dismiss()
+                    }
+                }
+            }
+            .onAppear {
+                goals = initial.goals
+                helpers = initial.helpers
+            }
+        }
+    }
+}
+
+// MARK: - Stat cards
 
 struct InsightCard: View {
     let value: String
@@ -169,9 +350,4 @@ struct TagStatRow: View {
                 .frame(width: 72, alignment: .trailing)
         }
     }
-}
-
-#Preview {
-    InsightsView()
-        .modelContainer(for: Moment.self, inMemory: true)
 }
