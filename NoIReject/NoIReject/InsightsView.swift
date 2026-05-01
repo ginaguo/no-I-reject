@@ -220,7 +220,7 @@ struct InsightsView: View {
 
                     if !positiveTags.isEmpty {
                         Section("What makes you happy 😊") {
-                            ForEach(Array(positiveTags.prefix(5))) { stat in
+                            ForEach(positiveTags) { stat in
                                 TagStatRow(stat: stat)
                             }
                         }
@@ -228,7 +228,7 @@ struct InsightsView: View {
 
                     if !negativeTags.isEmpty {
                         Section("What drains you 😔") {
-                            ForEach(Array(negativeTags.prefix(5))) { stat in
+                            ForEach(negativeTags) { stat in
                                 TagStatRow(stat: stat)
                             }
                         }
