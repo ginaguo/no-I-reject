@@ -101,7 +101,7 @@ extension Moment {
 
 // MARK: - Constants & helpers
 
-let predefinedTags = ["Work", "Family", "Gym", "Health", "Social", "Study", "Travel", "Food"]
+let predefinedTags = ["Work", "Family", "Friend", "Gym", "Health", "Social", "Study", "Travel", "Food"]
 
 func dailyEmoji(for score: Int) -> String {
     if score < -20 { return "😰" }

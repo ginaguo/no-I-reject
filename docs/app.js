@@ -5,7 +5,7 @@ const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 let sb;
 
 const CUSTOM_TAGS_KEY = 'noireject_custom_tags';
-const PREDEFINED_TAGS = ['Work','Family','Gym','Health','Social','Study','Travel','Food'];
+const PREDEFINED_TAGS = ['Work','Family','Friend','Gym','Health','Social','Study','Travel','Food'];
 
 let currentUser   = null;
 let cachedMoments = [];
@@ -677,8 +677,8 @@ function renderInsights() {
         '<div class="overall-vibe-value ' + avgClass + '">' + avgStr + '</div>' +
       '</div>' +
     '</div>' +
-    (happy.length    ? '<div class="section-label">\uD83D\uDE0A What Makes You Happy</div><div class="list-card">' + happy.slice(0, 5).map(tagRow).join('') + '</div>' : '') +
-    (draining.length ? '<div class="section-label">\uD83D\uDE14 What Drains You</div><div class="list-card">' + draining.slice(0, 5).map(tagRow).join('') + '</div>' : '') +
+    (happy.length    ? '<div class="section-label">\uD83D\uDE0A What Makes You Happy</div><div class="list-card">' + happy.map(tagRow).join('') + '</div>' : '') +
+    (draining.length ? '<div class="section-label">\uD83D\uDE14 What Drains You</div><div class="list-card">' + draining.map(tagRow).join('') + '</div>' : '') +
     (tagStats.length ? '<div class="section-label">All Tags</div><div class="list-card">' + tagStats.map(tagRow).join('') + '</div>' : '');
 }
 
